@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "354280393904",
+    "project_id": "all-in-one-management-d6e1d",
+    "storage_bucket": "all-in-one-management-d6e1d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:354280393904:android:a491ea9da7c44b9f5abf75",
+        "android_client_info": {
+          "package_name": "com.aiom.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB_SThSA9gLwtwROKK-QpULMqvJ5o7a0w0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:354280393904:android:d00d8bcb793407195abf75",
+        "android_client_info": {
+          "package_name": "com.example.aiom"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB_SThSA9gLwtwROKK-QpULMqvJ5o7a0w0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:354280393904:android:b9b384458a6822095abf75",
+        "android_client_info": {
+          "package_name": "com.example.factory_pro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB_SThSA9gLwtwROKK-QpULMqvJ5o7a0w0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,73 @@
+name: aiom
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase & Auth
+  firebase_core: ^4.3.0
+  firebase_auth: ^6.1.3
+  cloud_firestore: ^6.1.1
+  firebase_storage: ^13.0.5
+  firebase_messaging: ^16.1.0
+  
+  # UI & Icons
+  cupertino_icons: ^1.0.8
+  google_fonts: ^7.0.2
+  arabic_font: ^0.0.9
+  fl_chart: ^1.1.1
+  
+  # Maps & Location
+  flutter_map: ^8.2.2
+  latlong2: ^0.9.1
+  geolocator: ^14.0.2
+  url_launcher: ^6.2.4
+  
+  # PDF & Printing
+  pdf: ^3.11.3
+  printing: ^5.14.2
+  flutter_pdfview: ^1.3.2
+  
+  # Utilities
+  provider: ^6.1.5+1
+  easy_localization: ^3.0.7
+  intl: ^0.20.2
+  http: ^1.2.0
+  bidi: ^2.0.2
+  path_provider: ^2.1.1
+  
+  # Media & Hardware
+  audioplayers: ^6.5.1
+  record: ^6.1.2
+  mobile_scanner: ^7.1.4
+  image_picker: ^1.0.7
+  flutter_local_notifications: ^19.5.0
+  share_plus: ^12.0.1
+  screenshot: ^3.0.0
+  location: ^8.0.1
+  async: ^2.13.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0 # تم تحديث الإصدار ليتوافق مع SDK الخاص بك
+
+
+flutter:
+  uses-material-design: true
+
+  # assets:
+    # - assets/translations/
+    # - assets/fonts/Cairo-Regular.ttf
+
+  # fonts:
+  #   - family: Cairo
+  #     fonts:
+  #       - asset: assets/fonts/Cairo-Regular.ttf
