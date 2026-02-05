@@ -46,5 +46,5 @@ flutter {
 }
 dependencies {
     // أضف هذا السطر في قسم الـ dependencies
-    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.3'
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.3")
 }
