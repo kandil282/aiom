@@ -1,5 +1,5 @@
 plugins {
-    id("com.android.application")
+    id("com.android.application" version "7.3.0" apply false)
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
@@ -12,6 +12,7 @@ android {
     ndkVersion = "27.0.12077973"
 
     compileOptions {
+        coreLibraryDesugaringEnabled true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -42,4 +43,8 @@ android {
 
 flutter {
     source = "../.."
+}
+dependencies {
+    // أضف هذا السطر في قسم الـ dependencies
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.3'
 }
