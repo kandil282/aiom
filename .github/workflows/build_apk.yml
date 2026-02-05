@@ -1,0 +1,35 @@
+name: Build Flutter APK
+on:
+  push:
+    branches:
+      - main  # سيقوم بالبناء فوراً عند رفع الكود على فرع main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'oracle'
+          java-version: '17'
+          
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x' # سيستخدم أحدث نسخة مستقرة
+          channel: 'stable'
+          
+      - name: Get Dependencies
+        run: flutter pub get
+        
+      - name: Build APK
+        run: flutter build apk --release --no-tree-shake-icons
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
