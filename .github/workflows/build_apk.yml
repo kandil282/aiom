@@ -35,3 +35,8 @@ jobs:
         with:
           name: release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Build APK
+        run: flutter build apk --release --no-tree-shake-icons --build-number=1 --build-name=1.0.0
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m"
