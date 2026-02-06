@@ -18,74 +18,146 @@ class SupplierStatementPage extends StatefulWidget {
 class _SupplierStatementPageState extends State<SupplierStatementPage> {
   
   // دالة تسجيل عملية دفع (سند صرف) + تسجيلها في المصاريف
+ // دالة تسجيل عملية دفع (سند صرف) مربوطة بالخزينة
   void _showPaymentDialog(double currentBalance) {
     final amountCtrl = TextEditingController();
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("سداد للمورد: ${widget.supplierName}"),
-        content: TextField(
-          controller: amountCtrl,
-          decoration: const InputDecoration(
-            labelText: "المبلغ المدفوع", 
-            suffixText: "ج.م",
-            border: OutlineInputBorder()
-          ),
-          keyboardType: TextInputType.number,
+        backgroundColor: const Color(0xFF1E293B), // متوافق مع الدارك مود
+        title: Text("سداد للمورد: ${widget.supplierName}", style: const TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // عرض رصيد الخزنة الحالي للمستخدم قبل الصرف (اختياري)
+            StreamBuilder<DocumentSnapshot>(
+              stream: FirebaseFirestore.instance.collection('vault').doc('main_vault').snapshots(),
+              builder: (context, vSnap) {
+                double vaultBalance = 0;
+                if (vSnap.hasData && vSnap.data!.exists) {
+                  vaultBalance = (vSnap.data!['balance'] ?? 0).toDouble();
+                }
+                return Text("المتاح في الخزنة: ${vaultBalance.toStringAsFixed(2)} ج.م",
+                    style: TextStyle(color: vaultBalance <= 0 ? Colors.red : Colors.greenAccent, fontSize: 13));
+              },
+            ),
+            const SizedBox(height: 15),
+            TextField(
+              controller: amountCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                labelText: "المبلغ المدفوع",
+                labelStyle: TextStyle(color: Colors.white70),
+                suffixText: "ج.م",
+                enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.orange)),
+              ),
+              keyboardType: TextInputType.number,
+            ),
+          ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("إلغاء")),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("إلغاء", style: TextStyle(color: Colors.white70)),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange[800]),
             onPressed: () async {
-              if (amountCtrl.text.isNotEmpty) {
-                double amount = double.parse(amountCtrl.text);
-                WriteBatch batch = FirebaseFirestore.instance.batch();
+              if (amountCtrl.text.isEmpty) return;
+              
+              double amountToPay = double.parse(amountCtrl.text);
+              if (amountToPay <= 0) return;
+
+              // --- بدء عملية التحقق والخصم ---
+              try {
+                // 1. الحصول على رصيد الخزنة الحالي
+                DocumentReference vaultRef = FirebaseFirestore.instance.collection('vault').doc('main_vault');
+                DocumentSnapshot vaultDoc = await vaultRef.get();
                 
-                // 1. تسجيل الحركة في جدول المشتريات (لضبط كشف حساب المورد)
+                double currentVaultBalance = 0;
+                if (vaultDoc.exists) {
+                  currentVaultBalance = (vaultDoc['balance'] ?? 0).toDouble();
+                }
+
+                // 2. التحقق من كفاية الرصيد
+                if (amountToPay > currentVaultBalance) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("❌ الرصيد في الخزنة غير كافٍ!"), backgroundColor: Colors.red),
+                    );
+                  }
+                  return;
+                }
+
+                // 3. تنفيذ العمليات في Batch واحد
+                WriteBatch batch = FirebaseFirestore.instance.batch();
+
+                // أ- خصم من الخزنة
+                batch.update(vaultRef, {
+                  'balance': FieldValue.increment(-amountToPay),
+                  'lastUpdated': FieldValue.serverTimestamp(),
+                });
+
+                // ب- تسجيل حركة في سجل الخزنة
+                DocumentReference vaultTransRef = FirebaseFirestore.instance.collection('vault_transactions').doc();
+                batch.set(vaultTransRef, {
+                  'type': 'expense', // صادر
+                  'category': 'دفعات موردين',
+                  'amount': amountToPay,
+                  'description': 'سداد للمورد: ${widget.supplierName}',
+                  'date': FieldValue.serverTimestamp(),
+                });
+
+                // ج- تسجيل الحركة في كشف حساب المورد (purchases)
                 DocumentReference payRef = FirebaseFirestore.instance.collection('purchases').doc();
                 batch.set(payRef, {
                   'supplierId': widget.supplierId,
                   'supplierName': widget.supplierName,
-                  'totalAmount': amount,
+                  'totalAmount': amountToPay,
                   'type': 'payment',
                   'date': FieldValue.serverTimestamp(),
-                  'note': 'سداد نقدي للمورد'
+                  'note': 'سداد نقدي من الخزنة الرئيسية'
                 });
 
-                // 2. تحديث رصيد المورد الكلي في كولكشن الموردين
+                // د- تحديث مديونية المورد
                 DocumentReference supRef = FirebaseFirestore.instance.collection('suppliers').doc(widget.supplierId);
                 batch.update(supRef, {
-                  'balance': FieldValue.increment(-amount)
+                  'balance': FieldValue.increment(-amountToPay)
                 });
 
-                // 3. تسجيل الدفعة في كولكشن المصاريف (Expenses)
+                // هـ- تسجيل في المصاريف العامة (اختياري حسب نظامك)
                 DocumentReference expRef = FirebaseFirestore.instance.collection('expenses').doc();
                 batch.set(expRef, {
                   'title': 'دفعة للمورد: ${widget.supplierName}',
-                  'amount': amount,
+                  'amount': amountToPay,
                   'category': 'دفعات موردين',
-                  'subCategory': widget.supplierName,
                   'date': FieldValue.serverTimestamp(),
-                  'recordedBy': 'admin@system.com', // يمكن استبداله بإيميل المستخدم الحالي
-                  'details': 'تم الخصم من حساب المورد وسدادها نقدياً',
                 });
 
                 await batch.commit();
-                if (mounted) Navigator.pop(context);
-                
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("تم تسجيل الدفع وتحديث المصاريف بنجاح"))
-                );
+
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("✅ تم السداد وخصم المبلغ من الخزنة"), backgroundColor: Colors.green),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("خطأ في العملية: $e"), backgroundColor: Colors.red),
+                  );
+                }
               }
             },
-            child: const Text("تأكيد الدفع"),
+            child: const Text("تأكيد السداد والخصم"),
           ),
         ],
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

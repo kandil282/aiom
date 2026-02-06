@@ -1,5 +1,6 @@
 
 import 'dart:async';
+import 'dart:ui' as ui;
 import 'package:async/async.dart'; // تأكد من إضافة async: ^2.11.0 في pubspec.yaml
 import 'package:intl/intl.dart';
 import 'dart:io';
@@ -12,7 +13,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 // ignore: avoid_web_libraries_in_flutter
 import 'package:flutter/foundation.dart' show kIsWeb;
-
+import 'dart:html' as html if (dart.library.io) 'dart:io';
 // استيراد الصفحات الخاصة بك (تأكد من صحة المسارات في مشروعك)
 import 'package:aiom/sales/CreateOrderPage.dart'; 
 import 'package:aiom/sales/agentCustomerStatement.dart';
@@ -20,7 +21,6 @@ import 'package:aiom/sales/agentCustomerStatement.dart';
 class ProfessionalAgentDashboard extends StatefulWidget {
   final String userId;
   final String agentName;
-
   const ProfessionalAgentDashboard({super.key, required this.userId, required this.agentName});
 
   @override
@@ -46,6 +46,8 @@ Widget _buildCombinedStatsCard({required String title, required Color color}) {
       .where('agentId', isEqualTo: widget.userId)
       .where('status', isEqualTo: 'confirmed')
       .snapshots();
+                  print("Debug: userId = ${widget.userId}");
+
 
   // 2. التحصيل المباشر (من المحاسب)
   final Stream<QuerySnapshot> directPayments = FirebaseFirestore.instance
@@ -128,6 +130,9 @@ Widget _styleStatsCard(String title, double total, Color accentColor) {
     ),
   );
 }
+
+
+
 Widget _buildSubCollectionStatsCard({required String title, required Color color}) {
   return StreamBuilder<QuerySnapshot>(
     stream: FirebaseFirestore.instance
@@ -141,6 +146,7 @@ Widget _buildSubCollectionStatsCard({required String title, required Color color
         future: _calculateTotal(snapshot.data!.docs),
         builder: (context, totalSnapshot) {
           return _buildStatLayout(title, totalSnapshot.data ?? 0, color);
+
         },
       );
     },
@@ -315,77 +321,6 @@ Widget build(BuildContext context) {
 
 
 
-Widget _buildFlexibleDoneCard() {
-  // 1. الاستعلام الأساسي (يعمل دائماً بدون مشاكل)
-  Query query = FirebaseFirestore.instance
-      .collection('pending_collections')
-      .where('agentId', isEqualTo: widget.userId)
-      .where('status', isEqualTo: 'confirmed');
-
-  // 2. فلتر التاريخ (سيتم تفعيله فقط إذا اختار المندوب فترة)
-  if (startDate != null && endDate != null) {
-    // ملاحظة: قد يطلب منك Firebase رابط Index جديد لهذا الترتيب
-    query = query
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate!))
-        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endDate!));
-  }
-
-  return StreamBuilder<QuerySnapshot>(
-    stream: query.snapshots(),
-    builder: (context, snapshot) {
-      // حل مشكلة الخطأ الأحمر عند اختيار الفترة
-      if (snapshot.hasError) {
-        return _buildErrorUI("يجب تفعيل الفهرس (Index) للفترة المختارة من كونسول Firebase");
-      }
-
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center(child: LinearProgressIndicator());
-      }
-
-      double total = 0;
-      if (snapshot.hasData) {
-        for (var doc in snapshot.data!.docs) {
-          final data = doc.data() as Map<String, dynamic>;
-          if (data.containsKey('amount') && data['amount'] != null) {
-            total += (data['amount'] as num).toDouble();
-          }
-        }
-      }
-
-      return Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
-          borderRadius: BorderRadius.circular(25),
-        ),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("إجمالي التحصيل", style: TextStyle(color: Colors.white70)),
-                IconButton(
-                  icon: Icon(Icons.calendar_month, color: startDate == null ? Colors.white : Colors.amber),
-                  onPressed: () => _selectDateRange(context),
-                ),
-              ],
-            ),
-            Text(
-              "${total.toStringAsFixed(2)} ج.م",
-              style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
-            ),
-            if (startDate != null)
-              TextButton.icon(
-                onPressed: () => setState(() => startDate = endDate = null),
-                icon: const Icon(Icons.refresh, size: 14, color: Colors.redAccent),
-                label: const Text("إلغاء الفلتر والعودة للإجمالي", style: TextStyle(color: Colors.redAccent, fontSize: 10)),
-              ),
-          ],
-        ),
-      );
-    },
-  );
-}
 
 
 Widget _buildActionCard(String t, IconData i, Color c, VoidCallback o) {
@@ -539,6 +474,8 @@ Widget _buildFlexibleStatsCard() {
     },
   );
 }
+
+
 // الدالة التي كانت مفقودة وتسبب خطأ في الكود
 Widget _buildErrorUI(String msg) {
   return Container(
@@ -563,151 +500,199 @@ Widget _buildErrorUI(String msg) {
 }
 
   // --- 3. دالة تحصيل النقدية وإصدار الإيصال الشيك ---
- void _openPaymentSheet() {
+void _openPaymentSheet() {
   final amountController = TextEditingController();
-  String? selectedId, selectedName;
+  final receiptController = TextEditingController();
+  String? selectedCustomerId;
+  String selectedCustomerName = "";
 
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
-    builder: (context) => StatefulBuilder( // أضفت StatefulBuilder لتحديث الاختيار داخل الشيت
+    backgroundColor: const Color(0xFF1E293B), // متناسق مع تصميمك الداكن
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+    ),
+    builder: (context) => StatefulBuilder(
       builder: (context, setModalState) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + 20, left: 20, right: 20, top: 20),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+          left: 20,
+          right: 20,
+          top: 20,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("سند قبض (أمانة عهدة)", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green)),
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.all(20),
+              decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(10)),
+            ),
+            const Text(
+              "تسجيل تحصيل نقدي من عميل",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
+            ),
+            const SizedBox(height: 25),
+
+            // اختيار العميل المرتبط بهذا المندوب فقط
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('customers')
+                  // .where('agentId', isEqualTo: currentAgentId) // فك التشفير لو عندك ID المندوب الحالي
+                  .orderBy('name')
+                  .snapshots(),
+              builder: (context, snap) {
+                if (!snap.hasData) return const CircularProgressIndicator();
+                
+                var items = snap.data!.docs.map((doc) {
+                  return DropdownMenuItem(
+                    value: doc.id,
+                    child: Text(doc['name'], style: const TextStyle(color: Colors.white)),
+                    onTap: () => selectedCustomerName = doc['name'],
+                    
+                  );
+                }).toList();
+
+                return DropdownButtonFormField<String>(
+                  dropdownColor: const Color(0xFF1E293B),
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: "اختر العميل",
+                    labelStyle: const TextStyle(color: Colors.white70),
+                    enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Colors.white10), borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: const Icon(Icons.person_search, color: Color(0xFF6366F1)),
+                  ),
+                  items: items,
+                  onChanged: (val) => setModalState(() => selectedCustomerId = val),
+                );
+              },
+            ),
             const SizedBox(height: 15),
-       StreamBuilder<QuerySnapshot>(
-  // الفلترة هنا تضمن جلب العملاء التابعين لهذا المندوب فقط
-  stream: FirebaseFirestore.instance
-      .collection('customers')
-      .where('agentId', isEqualTo: widget.userId) // الربط عبر الـ ID
-      .snapshots(),
-  builder: (context, snap) {
-    if (snap.hasError) return const Text("خطأ في تحميل العملاء");
-    if (!snap.hasData) return const Center(child: CircularProgressIndicator());
 
-    // التأكد من أن القائمة ليست فارغة
-    if (snap.data!.docs.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(8.0),
-        child: Text("لا يوجد عملاء مضافين باسمك حتى الآن", style: TextStyle(color: Colors.orange)),
-      );
-    }
+            // حقل المبلغ
+            TextField(
+              controller: amountController,
+              keyboardType: TextInputType.number,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: "المبلغ المحصل",
+                labelStyle: const TextStyle(color: Colors.white70),
+                suffixText: "ج.م",
+                enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Colors.white10), borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                prefixIcon: const Icon(Icons.account_balance_wallet, color: Colors.greenAccent),
+              ),
+            ),
+            const SizedBox(height: 15),
 
-    // فحص العمليات المرفوضة (اختياري كما في كودك)
-    var rejectedDocs = snap.data!.docs.where((d) {
-      var data = d.data() as Map<String, dynamic>;
-      return data.containsKey('status') && data['status'] == 'rejected';
-    }).toList();
+            // رقم الإيصال الورقي
+            TextField(
+              controller: receiptController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: "رقم الإيصال الورقي",
+                labelStyle: const TextStyle(color: Colors.white70),
+                enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Colors.white10), borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                prefixIcon: const Icon(Icons.receipt_long, color: Colors.orangeAccent),
+              ),
+            ),
+            const SizedBox(height: 25),
 
-    return Column(
-      children: [
-        if (rejectedDocs.isNotEmpty) ...[
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: Colors.red.shade100, borderRadius: BorderRadius.circular(10)),
-            child: Text("لديك ${rejectedDocs.length} عمليات مرفوضة، برجاء مراجعة الحسابات", 
-              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12)),
-          ),
-          const SizedBox(height: 10),
-        ],
-        DropdownButtonFormField<String>(
-          decoration: const InputDecoration(labelText: "اختر عميلك", border: OutlineInputBorder()),
-          items: snap.data!.docs.map((d) {
-            var data = d.data() as Map<String, dynamic>;
-            // استخدام name كما هو مسجل في قاعدة البيانات
-            String cName = data['name'] ?? "بدون اسم";
-            return DropdownMenuItem(
-              value: d.id, 
-              child: Text(cName), 
-              onTap: () => selectedName = cName
-            );
-          }).toList(),
-          onChanged: (v) => setModalState(() => selectedId = v),
-        ),
-      ],
-    );
-  },
-),
-           
-           
-            const SizedBox(height: 10),
-            TextField(controller: amountController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "المبلغ المحصل", border: OutlineInputBorder())),
-            const SizedBox(height: 20),
+            // زر إرسال الطلب للإدارة
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.green, minimumSize: const Size(double.infinity, 50)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6366F1),
+                minimumSize: const Size(double.infinity, 55),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              ),
               onPressed: () async {
-                if (selectedId == null || amountController.text.isEmpty) return;
+                if (selectedCustomerId == null || amountController.text.isEmpty) return;
                 
-                String rNo = "TR-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}";
-                
+                double amount = double.tryParse(amountController.text) ?? 0;
+                if (amount <= 0) return;
+
+                // إرسال البيانات لجدول الانتظار pending_collections
                 await FirebaseFirestore.instance.collection('pending_collections').add({
-                  'amount': double.parse(amountController.text),
-                  'customerId': selectedId,
-                  'customerName': selectedName,
-                  'agentId': widget.userId,
-                  'agentName': widget.agentName,
-                  'status': 'pending', // التأكد من كتابتها status وليس sNatus
+                'agentId': widget.userId,      // ✅ نستخدم المتغير اللي جاي للصفحة
+                  'agentName': widget.agentName,  // ✅ نستخدم الاسم الفعلي
+                  'customerId': selectedCustomerId,
+                  'customerName': selectedCustomerName,
+                  'amount': amount,
+                  'receiptNo': receiptController.text,
+                  'status': 'pending', // هامة جداً لكي تظهر في صفحة الخزينة
                   'date': FieldValue.serverTimestamp(),
-                  'receiptNo': rNo,
                 });
 
-                Navigator.pop(context);
-                // دالة المشاركة
-                _handleShareReceipt(selectedName!, amountController.text, rNo);
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("✅ تم إرسال التحصيل للإدارة بنجاح"), backgroundColor: Colors.green),
+                  );
+                }
               },
-              child: const Text("حفظ وإرسال الإيصال", style: TextStyle(color: Colors.white)),
-            ),
+              child: const Text("إرسال لتأكيد الخزينة", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            )
           ],
         ),
       ),
     ),
   );
 }
-
   // --- 4. جلب بيانات الشركة وتصوير الإيصال ---
   void _handleShareReceipt(String customer, String amount, String rNo) async {
+  try {
+    // 1. جلب بيانات الشركة
     var companySnap = await FirebaseFirestore.instance.collection('settings').doc('company_info').get();
     Map<String, dynamic> companyData = companySnap.data() ?? {};
 
+    // 2. التقاط الصورة من الويدجت
     final uint8List = await screenshotController.captureFromWidget(
-      Material(child: _buildReceiptDesign(customer, amount, rNo, companyData)),
-      context: context,
+     Material(
+    child: Directionality(
+      // استخدم ui. قبل الكلمة لحل المشكلة نهائياً
+      textDirection: ui.TextDirection.rtl, 
+      child: _buildReceiptDesign(customer, amount, rNo, companyData),
+    ),
+  ),
+  context: context,
+      delay: const Duration(milliseconds: 100), // تأخير بسيط لضمان رندر الألوان
     );
 
-    // if (kIsWeb) {
-    //   final blob = html.Blob([uint8List]);
-    //   final url = html.Url.createObjectUrlFromBlob(blob);
-    //   html.AnchorElement(href: url)..setAttribute("download", "Receipt-$rNo.png")..click();
-    //   html.Url.revokeObjectUrl(url);
-    // } else {
-    //   final dir = await getTemporaryDirectory();
-    //   final file = await File('${dir.path}/receipt.png').create();
-    //   await file.writeAsBytes(uint8List);
-    //   await Share.shareXFiles([XFile(file.path)], text: 'إيصال استلام نقدية من ${companyData['name'] ?? 'شركتنا'}');
-    // }
-  if (kIsWeb) {
-    // كود الويب (سيتم تجاهله في الأندرويد ولن يسبب خطأ)
-    // ملاحظة: لاستخدام html في الويب فقط دون ضرب الأندرويد، يفضل استخدام 
-    // مكتبة universal_html من pub.dev بدلاً من dart:html
-    
-    // أو استخدم الحل اليدوي البسيط:
-    // html.AnchorElement(href: url)...
-  } else {
-    // كود الأندرويد والويندوز
-    // هنا نستخدم مكتبة مثل path_provider لحفظ الصورة في الاستوديو أو الفولدر
-    print("تحميل الإيصال على الموبايل...");
+    if (kIsWeb) {
+      // --- منطق الويب: تحميل الملف فوراً ---
+      final blob = html.Blob([uint8List], 'image/png');
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute("download", "Receipt-$rNo.png")
+        ..click();
+      html.Url.revokeObjectUrl(url);
+    } else {
+      // --- منطق الموبايل: مشاركة عبر الواتساب أو التطبيقات ---
+      final dir = await getTemporaryDirectory();
+      final file = await File('${dir.path}/receipt_$rNo.png').create();
+      await file.writeAsBytes(uint8List);
+
+      // مشاركة الملف
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: 'إيصال استلام نقدية - ${companyData['name'] ?? 'المصنع الذكي'}',
+      );
+    }
+  } catch (e) {
+    debugPrint("Error sharing receipt: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("حدث خطأ أثناء إصدار الإيصال")),
+    );
   }
-
-
-
-
-
-  }
-
+}
+ 
+ 
+ 
+ 
   // --- 5. تصميم الإيصال الشياكة ---
   Widget _buildReceiptDesign(String customer, String amount, String rNo, Map<String, dynamic> company) {
     String dayName = DateFormat('EEEE', 'ar').format(DateTime.now());

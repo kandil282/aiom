@@ -209,21 +209,20 @@ Future<void> _approveOrder(String orderId, Map<String, dynamic> data) async {
   if (_isProcessing) return;
   setState(() => _isProcessing = true);
 
-  // تعريف المتغيرات
   WriteBatch batch = FirebaseFirestore.instance.batch();
   double totalInvoicedAmount = 0.0;
   List<Map<String, dynamic>> finalInvoiceItems = [];
-  List<Map<String, dynamic>> productionItems = []; // لتسجيل العجز
 
   try {
     String customerId = data['customerId'];
     String agentName = data['agentName'] ?? 'غير معروف';
-
-    // 1. جلب اسم العميل (اختياري للعرض في الفاتورة)
+    String agentId = data['agentId'] ?? 'unknown_agent'; // التأكد من وجود ID المندوب
+    
+    // جلب بيانات العميل
     DocumentSnapshot custDoc = await FirebaseFirestore.instance.collection('customers').doc(customerId).get();
     String customerName = custDoc.exists ? (custDoc.get('name') ?? 'عميل') : 'عميل';
+    String customerPhone = custDoc.exists ? (custDoc.get('phone') ?? '') : '';
 
-    // 2. معالجة الأصناف (خصم مخزن + حساب الفاتورة)
     List items = data['items'] ?? [];
     
     for (var item in items) {
@@ -232,105 +231,110 @@ Future<void> _approveOrder(String orderId, Map<String, dynamic> data) async {
       int requestedQty = (item['qty'] ?? 0).toInt();
       double price = (item['price'] ?? 0.0).toDouble();
 
-      // جلب المخزون الحالي لهذا المنتج
+      // جلب بيانات المنتج لضمان الفئات (Categories) للتقارير
+      var productDoc = await FirebaseFirestore.instance.collection('products').doc(pId).get();
+      String category = productDoc.exists ? (productDoc.get('category') ?? 'عام') : 'عام';
+      String subCategory = productDoc.exists ? (productDoc.get('subCategory') ?? 'عام') : 'عام';
+
+      // منطق خصم المخزن
       var invSnapshot = await FirebaseFirestore.instance
-          .collection('products').doc(pId).collection('inventory').limit(1).get();
+          .collection('products').doc(pId).collection('inventory')
+          .where('quantity', isGreaterThan: 0)
+          .limit(1).get();
 
       int currentStock = 0;
       DocumentReference? invRef;
-
       if (invSnapshot.docs.isNotEmpty) {
         currentStock = (invSnapshot.docs.first.data()['quantity'] ?? 0) as int;
         invRef = invSnapshot.docs.first.reference;
       }
 
-      // حساب الكميات (المتاح للصرف vs العجز)
       int qtyToInvoice = (requestedQty <= currentStock) ? requestedQty : currentStock;
-      int qtyDeficit = requestedQty - qtyToInvoice;
-
-      // أ) إذا كان هناك كمية ستصرف: نخصم من المخزن ونضيف للفاتورة
+      
       if (qtyToInvoice > 0 && invRef != null) {
         batch.update(invRef, {'quantity': FieldValue.increment(-qtyToInvoice)});
+        batch.update(FirebaseFirestore.instance.collection('products').doc(pId), {
+          'totalQuantity': FieldValue.increment(-qtyToInvoice)
+        });
         
         finalInvoiceItems.add({
           'productId': pId,
           'productName': pName,
+          'category': category,
+          'subCategory': subCategory,
           'qty': qtyToInvoice,
           'price': price,
-          'total': qtyToInvoice * price,
+          'totalPrice': qtyToInvoice * price,
         });
         
         totalInvoicedAmount += (qtyToInvoice * price);
       }
-
-      // ب) إذا كان هناك عجز: نضيفه لقائمة الإنتاج (اختياري)
-      if (qtyDeficit > 0) {
-        productionItems.add({
-          'productName': pName,
-          'quantity': qtyDeficit,
-        });
-        
-        // إنشاء طلب إنتاج فوراً للعجز
-        DocumentReference prodRef = FirebaseFirestore.instance.collection('production_orders').doc();
-        batch.set(prodRef, {
-          'productName': pName,
-          'quantity': qtyDeficit,
-          'status': 'pending',
-          'origin': 'deficit_sales', // مصدر الطلب: عجز مبيعات
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      }
     }
 
-    // إذا لم يتم صرف أي شيء (المخازن فارغة تماماً)
-    if (finalInvoiceItems.isEmpty && productionItems.isEmpty) {
-      throw "المخزون فارغ لجميع الأصناف! يرجى مراجعة الإنتاج أولاً.";
-    }
+    if (finalInvoiceItems.isEmpty) throw "لا يوجد مخزون كافٍ لإتمام العملية";
 
-    // 3. إنشاء فاتورة العميل (Transaction)
-    if (finalInvoiceItems.isNotEmpty) {
-      DocumentReference transRef = FirebaseFirestore.instance
-          .collection('customers').doc(customerId)
-          .collection('transactions').doc();
+    // 1. إضافة الفاتورة للشحن
+    DocumentReference invDocRef = FirebaseFirestore.instance.collection('invoices').doc();
+    batch.set(invDocRef, {
+      'customerId': customerId,
+      'customerName': customerName,
+      'items': finalInvoiceItems,
+      'totalAmount': totalInvoicedAmount,
+      'date': FieldValue.serverTimestamp(),
+      'shippingStatus': 'ready',
+      'source': 'agent_order',
+      'agentId': agentId,
+    });
 
-      batch.set(transRef, {
-        'type': 'invoice',
-        'amount': totalInvoicedAmount,
-        'date': FieldValue.serverTimestamp(),
-        'items': finalInvoiceItems,
-        'agentName': agentName,
-        'orderRef': orderId,
-        'note': productionItems.isNotEmpty ? 'يوجد أصناف لم يتم تسليمها لعدم توفر المخزون' : 'تم التسليم بالكامل',
-      });
+    // 2. الكوليكشن الجديد الموحد (المصدر الأساسي للتقارير)
+    DocumentReference globalTransDoc = FirebaseFirestore.instance.collection('global_transactions').doc();
+    batch.set(globalTransDoc, {
+      'transactionId': globalTransDoc.id,
+      'type': 'invoice',
+      'source': 'agent',          // لتوضيح أنها مبيعات مناديب
+      'amount': totalInvoicedAmount,
+      'date': FieldValue.serverTimestamp(),
+      'customerId': customerId,
+      'customerName': customerName,
+      'agentId': agentId,         // مهم جداً لتقرير مدير المبيعات
+      'agentName': agentName,
+      'items': finalInvoiceItems, 
+      'invoiceRef': invDocRef.id,
+      'orderRef': orderId,
+    });
 
-      // 4. تحديث رصيد العميل
-      batch.update(FirebaseFirestore.instance.collection('customers').doc(customerId), {
-        'balance': FieldValue.increment(totalInvoicedAmount)
-      });
-    }
+    // 3. تحديث مديونية العميل وسجل معاملاته المحلي
+    batch.update(FirebaseFirestore.instance.collection('customers').doc(customerId), {
+      'balance': FieldValue.increment(totalInvoicedAmount)
+    });
+    
+    DocumentReference localTransRef = FirebaseFirestore.instance
+        .collection('customers').doc(customerId)
+        .collection('transactions').doc();
+    batch.set(localTransRef, {
+      'type': 'invoice',
+      'amount': totalInvoicedAmount,
+      'date': FieldValue.serverTimestamp(),
+      'agentName': agentName,
+      'items': finalInvoiceItems,
+    });
 
-    // 5. تحديث حالة الطلب الأصلي (هذا ما يجعله يختفي من القائمة)
-    // نغير الحالة من pending إلى approved
+    // 4. تحديث طلب المندوب الأصلي
     batch.update(FirebaseFirestore.instance.collection('agent_orders').doc(orderId), {
       'status': 'approved', 
       'finalAmount': totalInvoicedAmount,
       'processedAt': FieldValue.serverTimestamp(),
-      'fulfilledItems': finalInvoiceItems,
-      'deficitItems': productionItems,
     });
 
-    // تنفيذ كل العمليات دفعة واحدة
     await batch.commit();
-
-    if (mounted) {
-      _showSuccess("تم الاعتماد بنجاح: فاتورة بـ $totalInvoicedAmount ج.م ✅");
-    }
+    if (mounted) _showSuccess("تم الاعتماد وتحديث التقارير المركزية ✅");
 
   } catch (e) {
-    if (mounted) _showError("خطأ أثناء الاعتماد: $e");
+    if (mounted) _showError("خطأ: $e");
   } finally {
     if (mounted) setState(() => _isProcessing = false);
   }
 }
+
 
 }

@@ -34,17 +34,19 @@ class _CourierDashboardState extends State<CourierDashboard> {
     }
 
     // تحديث الموقع في Firestore داخل كوليكشن users بناءً على صورتك
-    location.onLocationChanged.listen((LocationData currentLocation) {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid != null) {
-        FirebaseFirestore.instance.collection('users').doc(uid).update({
-          'latitude': currentLocation.latitude,
-          'longitude': currentLocation.longitude,
-          'lastUpdated': FieldValue.serverTimestamp(),
-        });
-      }
+  // داخل دالة _setupLocation في صفحة المندوب
+location.onLocationChanged.listen((LocationData currentLocation) {
+  final uid = FirebaseAuth.instance.currentUser?.uid;
+  if (uid != null) {
+    FirebaseFirestore.instance.collection('users').doc(uid).update({
+      'latitude': currentLocation.latitude,
+      'longitude': currentLocation.longitude,
+      // الحقل الجديد الذي ستستخدمه الخريطة
+      'lastLocation': GeoPoint(currentLocation.latitude!, currentLocation.longitude!), 
+      'lastUpdated': FieldValue.serverTimestamp(),
     });
-    
+  }
+});
     if (mounted) setState(() => _isTracking = true);
   }
 

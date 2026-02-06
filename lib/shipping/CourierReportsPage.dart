@@ -1,117 +1,91 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'FleetTrackingPage.dart'; // تأكد من المسار الصحيح
 
-class CourierReportsPage extends StatelessWidget {
-  const CourierReportsPage({super.key});
+class FleetRadarPage extends StatelessWidget {
+  const FleetRadarPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // روابط الخريطة (مجانية تماماً ولا تحتاج API Key)
+    String mapUrl = isDark
+        ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
       appBar: AppBar(
-        title: const Text("متابعة حركة المناديب"),
-        backgroundColor: Colors.indigo[900],
+        title: const Text("رادار المتابعة اللحظية"),
+        backgroundColor: isDark ? const Color(0xff1e1b4b) : Colors.indigo[900],
         foregroundColor: Colors.white,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('agent_orders')
-            .where('shippingStatus', isEqualTo: 'shipped')
-            .snapshots(),
+        // جلب كل المناديب (تأكد أن role هو التسمية الصحيحة عندك في Firestore)
+        stream: FirebaseFirestore.instance.collection('users').snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.hasError) return const Center(child: Text("حدث خطأ في جلب البيانات"));
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          
-          var docs = snapshot.data!.docs;
-          if (docs.isEmpty) return const Center(child: Text("لا توجد شحنات نشطة حالياً"));
 
-          // --- تعديل: تجميع البيانات مع حماية ضد الحقول المفقودة ---
-          Map<String, List<DocumentSnapshot>> courierGroups = {};
+          List<Marker> markers = [];
           
-          for (var doc in docs) {
+          for (var doc in snapshot.data!.docs) {
             var data = doc.data() as Map<String, dynamic>;
             
-            // حماية حقل اسم المندوب
-            String courier = "غير معرف";
-            if (data.containsKey('courierName') && data['courierName'] != null) {
-              courier = data['courierName'];
-            }
+            // قراءة الإحداثيات بناءً على أسماء الحقول في كود المندوب الخاص بك
+            double? lat = data['latitude']?.toDouble();
+            double? lng = data['longitude']?.toDouble();
+            String name = data['username'] ?? "مندوب";
 
-            if (!courierGroups.containsKey(courier)) {
-              courierGroups[courier] = [];
-            }
-            courierGroups[courier]!.add(doc);
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: courierGroups.keys.length,
-            itemBuilder: (context, index) {
-              String name = courierGroups.keys.elementAt(index);
-              List<DocumentSnapshot> orders = courierGroups[name]!;
-              
-              // حماية حساب الإجمالي
-              double totalValue = orders.fold(0, (sum, doc) {
-                var d = doc.data() as Map<String, dynamic>;
-                return sum + (d['totalAmount'] ?? 0).toDouble();
-              });
-
-              return Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                elevation: 3,
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ExpansionTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Colors.orange,
-                    child: Icon(Icons.delivery_dining, color: Colors.white),
-                  ),
-                  title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text("معه ${orders.length} طلبية | عهدة: $totalValue ج.م"),
-                  trailing: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => CourierTrackingPage(courierName: name, courierId: '',)),
-                      );
-                    },
-                    icon: const Icon(Icons.map, size: 16, color: Colors.white),
-                    label: const Text("تتبع", style: TextStyle(color: Colors.white)),
-                  ),
-                  children: [
-                    const Divider(),
-                    ...orders.map((orderDoc) {
-                      var order = orderDoc.data() as Map<String, dynamic>;
-                      
-                      // حماية حقل اسم العميل (سبب الخطأ الثاني في صورتك)
-                      String customer = order.containsKey('customerName') 
-                          ? order['customerName'] 
-                          : "عميل بدون اسم";
-
-                      return ListTile(
-                        title: Text(customer),
-                        subtitle: Text("القيمة: ${order['totalAmount'] ?? 0} ج.م"),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.check_circle_outline, color: Colors.green),
-                          onPressed: () => _markAsDelivered(orderDoc.id),
+            if (lat != null && lng != null) {
+              markers.add(
+                Marker(
+                  point: LatLng(lat, lng),
+                  width: 120,
+                  height: 120,
+                  child: Column(
+                    children: [
+                      // ملصق اسم المندوب
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.indigo[700] : Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: const [BoxShadow(blurRadius: 5, color: Colors.black26)],
+                          border: Border.all(color: Colors.orange, width: 1)
                         ),
-                      );
-                    }),
-                  ],
+                        child: Text(
+                          name,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black
+                          ),
+                        ),
+                      ),
+                      const Icon(Icons.delivery_dining, color: Colors.redAccent, size: 40),
+                    ],
+                  ),
                 ),
               );
-            },
+            }
+          }
+
+          return FlutterMap(
+            options: const MapOptions(
+              initialCenter: LatLng(30.0444, 31.2357), // القاهرة كبداية
+              initialZoom: 11.0,
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: mapUrl,
+                userAgentPackageName: 'com.your.app',
+              ),
+              MarkerLayer(markers: markers),
+            ],
           );
         },
       ),
     );
-  }
-
-  Future<void> _markAsDelivered(String orderId) async {
-    await FirebaseFirestore.instance.collection('agent_orders').doc(orderId).update({
-      'shippingStatus': 'delivered',
-      'deliveryDate': FieldValue.serverTimestamp(),
-    });
   }
 }

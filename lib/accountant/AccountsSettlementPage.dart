@@ -222,6 +222,7 @@ Future<void> _processDirectCollection(String custId, String custName, double amo
     });
 
     await batch.commit();
+    if (!mounted) return; // تأكد أن الصفحة لا تزال موجودة
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ تم التحصيل وربطه بالمندوب بنجاح")));
   } catch (e) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("❌ خطأ: $e")));
@@ -442,22 +443,25 @@ Widget _buildModernCard(String id, Map<String, dynamic> data) {
     );
   }
 
-  Widget _statCard(String title, String val, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(height: 8),
-          Text(title, style: const TextStyle(fontSize: 12, color: Colors.black87)),
-          Text(val, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
-
+Widget _statCard(String title, String val, IconData icon, Color color) {
+  return Container(
+    padding: const EdgeInsets.all(15),
+    decoration: BoxDecoration(
+      color: const Color(0xFF1E293B), // نفس لون الكروت الداكنة
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: Colors.white10),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(height: 8),
+        Text(title, style: const TextStyle(fontSize: 12, color: Colors.white70)),
+        Text(val, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+      ],
+    ),
+  );
+}
   // --- فلتر المناديب ---
 Widget _buildAgentFilter() {
   const Color darkCard = Color(0xFF1E293B); // لون الخلفية الداكن
@@ -716,74 +720,146 @@ void _showSettleDialog(String docId, String empName, double totalAdvance) {
 
 
   // --- دالة صرف عهدة جديدة ---
- void _openIssueExpenseSheet() {
-  final amount = TextEditingController();
-  final note = TextEditingController();
-  String? selectedEmployee;
+void _openIssueExpenseSheet() {
+    final amountController = TextEditingController();
+    final noteController = TextEditingController();
+    String? selectedEmployee;
 
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
-    builder: (context) => StatefulBuilder(
-      builder: (context, setModalState) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + 20, left: 20, right: 20, top: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("تسجيل صرف عهدة موظف", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            const SizedBox(height: 20),
-            StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('users').where('role', isEqualTo: 'agent').snapshots(),
-              builder: (context, snap) {
-                if (!snap.hasData) return const CircularProgressIndicator();
-                
-                // التعديل هنا: استخدام username بدلاً من name
-                var items = snap.data!.docs.map((d) {
-                  var data = d.data() as Map<String, dynamic>;
-                  String nameToShow = data['username'] ?? "بدون اسم"; 
-                  return DropdownMenuItem<String>(
-                    value: nameToShow,
-                    child: Text(nameToShow),
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1E293B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+            left: 20,
+            right: 20,
+            top: 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              const Text(
+                "تسجيل صرف عهدة موظف",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
+              ),
+              const SizedBox(height: 25),
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('users')
+                    .where('role', isEqualTo: 'agent')
+                    .snapshots(),
+                builder: (context, snap) {
+                  if (!snap.hasData) return const CircularProgressIndicator();
+                  var items = snap.data!.docs.map((d) {
+                    var data = d.data() as Map<String, dynamic>;
+                    String nameToShow = data['username'] ?? "بدون اسم";
+                    return DropdownMenuItem<String>(
+                      value: nameToShow,
+                      child: Text(nameToShow, style: const TextStyle(color: Colors.white)),
+                    );
+                  }).toList();
+
+                  return DropdownButtonFormField<String>(
+                    dropdownColor: const Color(0xFF1E293B),
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: "اختر الموظف",
+                      labelStyle: const TextStyle(color: Colors.white70),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(color: Colors.white10),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      prefixIcon: const Icon(Icons.person, color: Color(0xFF6366F1)),
+                    ),
+                    items: items,
+                    onChanged: (val) => setModalState(() => selectedEmployee = val),
                   );
-                }).toList();
+                },
+              ),
+              const SizedBox(height: 15),
+              TextField(
+                controller: amountController,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: "المبلغ",
+                  labelStyle: const TextStyle(color: Colors.white70),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(color: Colors.white10),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.attach_money, color: Colors.greenAccent),
+                ),
+              ),
+              const SizedBox(height: 15),
+              TextField(
+                controller: noteController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: "البيان (بنزين، صيانة..)",
+                  labelStyle: const TextStyle(color: Colors.white70),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(color: Colors.white10),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.description, color: Colors.orangeAccent),
+                ),
+              ),
+              const SizedBox(height: 25),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  minimumSize: const Size(double.infinity, 55),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                ),
+                onPressed: () async {
+                  if (selectedEmployee == null || amountController.text.isEmpty) return;
+                  double amountVal = double.tryParse(amountController.text) ?? 0;
+                  if (amountVal <= 0) return;
 
-                return DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(labelText: "اختر الموظف", border: OutlineInputBorder()),
-                  initialValue: selectedEmployee,
-                  items: items,
-                  onChanged: (val) => setModalState(() => selectedEmployee = val),
-                );
-              },
-            ),
-            const SizedBox(height: 15),
-            TextField(controller: amount, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "المبلغ", border: OutlineInputBorder())),
-            const SizedBox(height: 10),
-            TextField(controller: note, decoration: const InputDecoration(labelText: "البيان (بنزين، صيانة..)", border: OutlineInputBorder())),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo, minimumSize: const Size(double.infinity, 50)),
-              onPressed: () async {
-                if (selectedEmployee == null || amount.text.isEmpty) return;
-                await FirebaseFirestore.instance.collection('staff_expenses').add({
-                  'employeeName': selectedEmployee,
-                  'amount': double.parse(amount.text),
-                  'note': note.text,
-                  'status': 'pending', // حالة الانتظار للتسوية لاحقاً
-                  'date': FieldValue.serverTimestamp(),
-                  'type': 'صرف عهدة'
-                });
-                Navigator.pop(context);
-              },
-              child: const Text("تأكيد الصرف", style: TextStyle(color: Colors.white)),
-            )
-          ],
+                  WriteBatch batch = FirebaseFirestore.instance.batch();
+                  DocumentReference staffExpRef = FirebaseFirestore.instance.collection('staff_expenses').doc();
+                  
+                  batch.set(staffExpRef, {
+                    'employeeName': selectedEmployee,
+                    'amount': amountVal,
+                    'note': noteController.text,
+                    'status': 'pending',
+                    'date': FieldValue.serverTimestamp(),
+                    'type': 'صرف عهدة'
+                  });
+
+                  DocumentReference vaultRef = FirebaseFirestore.instance.collection('vault').doc('main_vault');
+                  batch.update(vaultRef, {'balance': FieldValue.increment(-amountVal)});
+
+                  await batch.commit();
+                  if (mounted) Navigator.pop(context);
+                },
+                child: const Text("تأكيد الصرف", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              )
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
- 
+    );
+  }
  
   void _rejectCollection(String id) {
     FirebaseFirestore.instance.collection('pending_collections').doc(id).update({'status': 'rejected'});

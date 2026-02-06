@@ -77,7 +77,7 @@ class _SmartInvoicePageState extends State<SmartInvoicePage> {
   }
 
   // دالة الحفظ (تظل كما هي في النسخة السابقة مع توزيع المخازن)
-  Future<void> _processInvoice() async {
+Future<void> _processInvoice() async {
     if (selectedCustomerId == null || itemsList.isEmpty) {
       _showMsg("البيانات ناقصة!", Colors.orange);
       return;
@@ -88,35 +88,34 @@ class _SmartInvoicePageState extends State<SmartInvoicePage> {
       WriteBatch batch = _db.batch();
       double finalInvoiceTotal = 0;
 
+      // 1. معالجة الأصناف وتجهيز البيانات
       for (var item in itemsList) {
         String pId = item['productId'];
         int remainingToDeduct = item['qty'];
         double itemPrice = item['price'];
         double itemTotal = itemPrice * remainingToDeduct;
         finalInvoiceTotal += itemTotal;
-        item['totalPrice'] = itemTotal;
+        item['totalPrice'] = itemTotal; // توحيد المسمى
 
-        List<Map<String, dynamic>> deductionSources = [];
+        // منطق خصم المخازن
         var invSnap = await _db.collection('products').doc(pId).collection('inventory').get();
-
         for (var doc in invSnap.docs) {
           if (remainingToDeduct <= 0) break;
           int stockInWh = (doc.data()['quantity'] ?? 0) as int;
-          String whName = doc.data()['warehouseName'] ?? "مخزن";
-
           if (stockInWh > 0) {
             int taken = (stockInWh >= remainingToDeduct) ? remainingToDeduct : stockInWh;
             batch.update(doc.reference, {'quantity': stockInWh - taken});
-            deductionSources.add({'whName': whName, 'qtyTaken': taken});
             remainingToDeduct -= taken;
           }
         }
-        item['deductionSources'] = deductionSources;
+        // تحديث إجمالي مخزن المنتج
         batch.update(_db.collection('products').doc(pId), {'totalQuantity': FieldValue.increment(-item['qty'])});
       }
 
+      // 2. إنشاء مستند الفاتورة (لأغراض الشحن والطباعة)
       DocumentReference invDoc = _db.collection('invoices').doc();
       batch.set(invDoc, {
+        'invoiceId': invDoc.id,
         'customerId': selectedCustomerId,
         'customerName': selectedCustomerName,
         'customerPhone': selectedCustomerPhone,
@@ -124,44 +123,53 @@ class _SmartInvoicePageState extends State<SmartInvoicePage> {
         'totalAmount': finalInvoiceTotal,
         'date': FieldValue.serverTimestamp(),
         'shippingStatus': 'ready',
+        'source': 'direct_office',
       });
-      DocumentReference transDoc = _db
-        .collection('customers')
-        .doc(selectedCustomerId)
-        .collection('transactions')
-        .doc();
 
-        batch.set(transDoc, {
-      'amount': finalInvoiceTotal,
-      'date': FieldValue.serverTimestamp(),
-      'type': 'invoice', // نوع المعاملة فاتورة
-      'items': itemsList, // تفاصيل الأصناف لكشف الحساب
-      'addedByAgent': 'admin', // أو اسم المستخدم الحالي
-      // الحقول الإضافية التي ظهرت في صورتك
-      'price': itemsList.isNotEmpty ? itemsList[0]['price'] : 0, 
-      'productName': itemsList.isNotEmpty ? itemsList[0]['productName'] : '',
-    });
+      // 3. الكوليكشن الجديد الموحد (المصدر الوحيد للتقارير)
+      DocumentReference globalTransDoc = _db.collection('global_transactions').doc();
+      batch.set(globalTransDoc, {
+        'transactionId': globalTransDoc.id,
+        'type': 'invoice',           // نوع العملية: فاتورة
+        'source': 'office',          // المصدر: المكتب
+        'amount': finalInvoiceTotal,
+        'date': FieldValue.serverTimestamp(),
+        // بيانات العميل
+        'customerId': selectedCustomerId,
+        'customerName': selectedCustomerName,
+        // بيانات المسؤول (هنا نضع المكتب كمسؤول)
+        'agentId': 'ADMIN_OFFICE', 
+        'agentName': 'إدارة المكتب',
+        // تفاصيل الأصناف للتقارير التحليلية
+        'items': itemsList, 
+        'invoiceRef': invDoc.id,
+      });
 
-    // 4. تحديث رصيد العميل (Balance) بالزيادة
-    DocumentReference customerDoc = _db.collection('customers').doc(selectedCustomerId);
-    batch.update(customerDoc, {
-      'balance': FieldValue.increment(finalInvoiceTotal), // زيادة المديونية
-    });
+      // 4. تحديث سجل العميل التاريخي (transactions القديم للتوافق)
+      DocumentReference transDoc = _db.collection('customers').doc(selectedCustomerId).collection('transactions').doc();
+      batch.set(transDoc, {
+        'type': 'invoice',
+        'amount': finalInvoiceTotal,
+        'date': FieldValue.serverTimestamp(),
+        'items': itemsList,
+        'addedByAgent': 'ADMIN_OFFICE',
+      });
 
-
-
-
+      // 5. تحديث رصيد مديونية العميل
+      DocumentReference customerDoc = _db.collection('customers').doc(selectedCustomerId);
+      batch.update(customerDoc, {
+        'balance': FieldValue.increment(finalInvoiceTotal),
+      });
 
       await batch.commit();
-      _showMsg("تمت العملية بنجاح ✅", Colors.green);
+      _showMsg("تم حفظ الفاتورة وتحديث التقارير ✅", Colors.green);
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      _showMsg("خطأ: $e", Colors.red);
+      _showMsg("خطأ في النظام: $e", Colors.red);
     } finally {
       if (mounted) setState(() => isSaving = false);
     }
   }
-
   void _showMsg(String m, Color c) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m), backgroundColor: c));
 
   @override

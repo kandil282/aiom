@@ -287,4 +287,6 @@ Future<void> _updateAvailableStock(String prodId) async {
     });
     if (mounted) Navigator.pop(context);
   }
+
+
 }

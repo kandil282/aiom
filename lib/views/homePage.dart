@@ -20,7 +20,7 @@ import 'package:aiom/production/MaterialRequestPage.dart';
 import 'package:aiom/production/ProductionPage.dart';
 import 'package:aiom/sales/CreateOrderPage.dart';
 import 'package:aiom/sales/salesManagement.dart';
-import 'package:aiom/sales/salesManager.dart';
+import 'package:aiom/sales/salesManager.dart' hide BusinessExecutiveDashboard;
 import 'package:aiom/shipping/CourierPage.dart';
 import 'package:aiom/shipping/CourierReportsPage.dart';
 import 'package:aiom/shipping/ShippingManagerPage.dart';
@@ -186,7 +186,7 @@ children: [
                     _item("إدارة الموظفين", Icons.people_alt_rounded, Colors.teal, const HRMasterPage(), "hr_manage", Theme.of(context).brightness == Brightness.dark),
                     _item("بيانات الشركة", Icons.business_center_rounded, Colors.blueGrey, const CompanySettingsPage(), "company_info", Theme.of(context).brightness == Brightness.dark),
                     _item("أرشيف المخزن", Icons.inventory_rounded, Colors.blueGrey, const MaterialArchivePage(), "warehouse_archive", Theme.of(context).brightness == Brightness.dark),
-                    _item(" التقارير", Icons.bar_chart_rounded, Colors.blueGrey, const BusinessExecutiveDashboard(), "admin", Theme.of(context).brightness == Brightness.dark),
+                    _item(" التقارير", Icons.bar_chart_rounded, Colors.blueGrey, const ExecutiveReportsPage(), "admin", Theme.of(context).brightness == Brightness.dark),
                   ]
                   
                   
@@ -194,7 +194,7 @@ children: [
 
                   // --- قسم المبيعات ---
                   _buildSection("المبيعات والعملاء", [
-                    _item("مدير مبيعات", Icons.shopping_cart_checkout_rounded, Colors.green, const SalesManagerProDashboard(), "sales_manager", Theme.of(context).brightness == Brightness.dark),
+                    _item("مدير مبيعات", Icons.shopping_cart_checkout_rounded, Colors.green, const SalesManagerDashboard(), "sales_manager", Theme.of(context).brightness == Brightness.dark),
                     _item("طلب مبيعات", Icons.shopping_cart_checkout_rounded, Colors.green, const AgentOrderPage(), "sales_create", Theme.of(context).brightness == Brightness.dark),
                     _item("إدارة المبيعات", Icons.analytics_rounded, Colors.green, ProfessionalAgentDashboard(userId: FirebaseAuth.instance.currentUser!.uid, agentName: widget.userName), "sales_manage", Theme.of(context).brightness == Brightness.dark),
                     _item("إدارة العملاء", Icons.person_add_alt_1_rounded, Colors.green, const ManageCustomersPage(), "customer_add", Theme.of(context).brightness == Brightness.dark),
@@ -227,7 +227,7 @@ children: [
                   // --- قسم الشحن (هنا الذكاء للمندوب) ---
                   _buildSection("الشحن والنقل", [
                     _item("إدارة الشحن", Icons.local_shipping_rounded, Colors.orange, const ShippingManagementPage(), "shipping_admin", Theme.of(context).brightness == Brightness.dark),
-                    _item("تتبع الشحن", Icons.location_searching_rounded, Colors.orange, const CourierReportsPage(), "shipping_track", Theme.of(context).brightness == Brightness.dark),
+                    _item("تتبع الشحن", Icons.location_searching_rounded, Colors.orange, const FleetRadarPage(), "shipping_track", Theme.of(context).brightness == Brightness.dark),
                     _item("مندوب التوصيل", Icons.delivery_dining_rounded, Colors.orange, const CourierDashboard(), "is_courier", Theme.of(context).brightness == Brightness.dark),
                   ]),
                 ],

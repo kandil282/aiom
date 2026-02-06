@@ -13,7 +13,7 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _barcodeController = TextEditingController();
-  
+
   String? _selectedCat;
   String? _selectedSubCat;
   bool _isLoading = false;
@@ -24,124 +24,139 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
     _tabController = TabController(length: 2, vsync: this);
   }
 
-  // --- دالة الحفظ الملكية وتوزيع المخازن ---
-// استبدل دالة _saveProduct بهذا الكود
-Future<void> _saveProduct() async {
-  if (_nameController.text.isEmpty || _selectedCat == null || _selectedSubCat == null) return;
-  setState(() => _isLoading = true);
+  // --- دوال الحفظ والحذف (كما هي بدون تغيير) ---
+  Future<void> _saveProduct() async {
+    if (_nameController.text.isEmpty || _selectedCat == null || _selectedSubCat == null) return;
+    setState(() => _isLoading = true);
+    try {
+      DocumentReference pRef = FirebaseFirestore.instance.collection('products').doc();
+      String barcode = _barcodeController.text.isEmpty ? "BC-${pRef.id.substring(0, 6).toUpperCase()}" : _barcodeController.text.trim();
+      WriteBatch batch = FirebaseFirestore.instance.batch();
 
-  try {
-    DocumentReference pRef = FirebaseFirestore.instance.collection('products').doc();
-    String barcode = _barcodeController.text.isEmpty ? "BC-${pRef.id.substring(0,6).toUpperCase()}" : _barcodeController.text.trim();
-    WriteBatch batch = FirebaseFirestore.instance.batch();
-    
-    // 1. إنشاء المنتج مع حقل إجمالي المخزون (أهم نقطة)
-    batch.set(pRef, {
-      'productName': _nameController.text.trim(),
-      'price': double.tryParse(_priceController.text) ?? 0.0,
-      'barcode': barcode,
-      'category': _selectedCat,
-      'subCategory': _selectedSubCat,
-      'totalQuantity': 0, // هذا الحقل هو مرجعنا السريع
-      'isDeleted': false, // للحماية من الحذف الخطأ
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-
-    // 2. إنشاء سجلات للمخازن (بقيم صفرية)
-    var warehouses = await FirebaseFirestore.instance.collection('storage_locations').get();
-    for (var w in warehouses.docs) {
-      batch.set(pRef.collection('inventory').doc(w.id), {
-        'warehouseId': w.id,
-        'warehouseName': w['name'],
-        'quantity': 0,
+      batch.set(pRef, {
+        'productName': _nameController.text.trim(),
+        'price': double.tryParse(_priceController.text) ?? 0.0,
+        'barcode': barcode,
+        'category': _selectedCat,
+        'subCategory': _selectedSubCat,
+        'totalQuantity': 0,
+        'isDeleted': false,
+        'createdAt': FieldValue.serverTimestamp(),
       });
+
+      var warehouses = await FirebaseFirestore.instance.collection('storage_locations').get();
+      for (var w in warehouses.docs) {
+        batch.set(pRef.collection('inventory').doc(w.id), {
+          'warehouseId': w.id,
+          'warehouseName': w['name'],
+          'quantity': 0,
+        });
+      }
+      await batch.commit();
+      _nameController.clear();
+      _priceController.clear();
+      _barcodeController.clear();
+      _showSnackBar("تم الحفظ بنجاح", Colors.green);
+    } catch (e) {
+      _showSnackBar("حدث خطأ", Colors.red);
+    } finally {
+      setState(() => _isLoading = false);
     }
-
-    await batch.commit();
-    // ... (تنظيف الحقول وإظهار رسالة نجاح)
-  } catch (e) {
-    // ... (معالجة الخطأ)
-  } finally {
-    setState(() => _isLoading = false);
   }
-}
 
-// استبدل دالة _deleteProduct بهذا الكود (الحذف الناعم)
-Future<void> _deleteProduct(String productId) async {
-  await FirebaseFirestore.instance.collection('products').doc(productId).update({
-    'isDeleted': true, // إخفاء فقط وليس حذف
-    'deletedAt': FieldValue.serverTimestamp(),
-  });
-  _showSnackBar("تم حذف المنتج بنجاح (إخفاء فقط)", Colors.blueGrey);
-}
-
-
-
-
-  // --- دالة الحذف النهائي للمنتج وسجلاته ---
-  // Future<void> _deleteProduct(String productId) async {
-  //   try {
-  //     // حذف السجلات الفرعية أولاً (المخازن) ثم المنتج الرئيسي
-  //     var invDocs = await FirebaseFirestore.instance.collection('products').doc(productId).collection('inventory').get();
-  //     WriteBatch batch = FirebaseFirestore.instance.batch();
-      
-  //     for (var doc in invDocs.docs) {
-  //       batch.delete(doc.reference);
-  //     }
-  //     batch.delete(FirebaseFirestore.instance.collection('products').doc(productId));
-      
-  //     await batch.commit();
-  //     _showSnackBar("تم حذف المنتج وسجلاته بنجاح", Colors.blueGrey);
-  //   } catch (e) {
-  //     _showSnackBar("فشل الحذف", Colors.red);
-  //   }
-  // }
+  Future<void> _deleteProduct(String productId) async {
+    await FirebaseFirestore.instance.collection('products').doc(productId).update({
+      'isDeleted': true,
+      'deletedAt': FieldValue.serverTimestamp(),
+    });
+    _showSnackBar("تم حذف المنتج بنجاح (إخفاء فقط)", Colors.blueGrey);
+  }
 
   @override
   Widget build(BuildContext context) {
+    // 1. تحديد ما إذا كنا في الوضع الليلي
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    // 2. تحديد لون النص الأساسي (أسود في اللايت، أبيض في الدارك)
+    final Color mainTextColor = isDarkMode ? Colors.white : Colors.black;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7F9),
+      // تغيير لون الخلفية حسب الوضع
+      backgroundColor: isDarkMode ? const Color(0xFF121212) : const Color(0xFFF4F7F9),
       body: CustomScrollView(
         slivers: [
-          _buildAppBar(),
-          SliverToBoxAdapter(child: _buildInputSection()),
-          SliverToBoxAdapter(child: _buildSectionTitle("إدارة الأصناف (اسحب للحذف)")),
-          _buildProductList(),
+          _buildAppBar(isDarkMode),
+          SliverToBoxAdapter(child: _buildInputSection(isDarkMode, mainTextColor)),
+          SliverToBoxAdapter(child: _buildSectionTitle("إدارة الأصناف (اسحب للحذف)", mainTextColor)),
+          _buildProductList(isDarkMode, mainTextColor),
         ],
       ),
     );
   }
 
-  // --- بناء الهيدر ونموذج الإدخال (نفس الكود السابق مع تحسينات بصرية) ---
-  Widget _buildAppBar() {
+  Widget _buildAppBar(bool isDarkMode) {
     return SliverAppBar(
-      expandedHeight: 120, pinned: true,
+      expandedHeight: 120,
+      pinned: true,
       flexibleSpace: FlexibleSpaceBar(
-        title: const Text("المصنع الذكي", style: TextStyle(fontWeight: FontWeight.bold)),
-        background: Container(decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF0D47A1), Color(0xFF1A237E)]))),
+        title: const Text("المصنع الذكي", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        background: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isDarkMode 
+                  ? [Colors.black87, Colors.grey[900]!] // ألوان داكنة للوضع الليلي
+                  : [const Color(0xFF0D47A1), const Color(0xFF1A237E)], // ألوان زرقاء للوضع النهاري
+            ),
+          ),
+        ),
       ),
-      bottom: TabBar(controller: _tabController, indicatorColor: Colors.amber, tabs: const [Tab(text: "منتجات تامة"), Tab(text: "خامات")]),
+      bottom: TabBar(
+        controller: _tabController,
+        indicatorColor: Colors.amber,
+        labelColor: Colors.white,
+        unselectedLabelColor: Colors.white70,
+        tabs: const [Tab(text: "منتجات تامة"), Tab(text: "خامات")],
+      ),
     );
   }
 
-  Widget _buildInputSection() {
+  Widget _buildInputSection(bool isDarkMode, Color textColor) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Card(
-        elevation: 8, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+        // لون الكارد يتغير
+        color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+        elevation: 8,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
             children: [
-              TextField(controller: _nameController, decoration: _inputDecoration(Icons.inventory_2, label: "اسم الصنف")),
+              TextField(
+                controller: _nameController,
+                style: TextStyle(color: textColor), // لون الكتابة
+                decoration: _inputDecoration(Icons.inventory_2, isDarkMode, label: "اسم الصنف"),
+              ),
               const SizedBox(height: 15),
-              _buildCategorySelectors(),
+              _buildCategorySelectors(isDarkMode, textColor),
               const SizedBox(height: 15),
               Row(
                 children: [
-                  Expanded(child: TextField(controller: _priceController, decoration: _inputDecoration(Icons.payments, label: "السعر"), keyboardType: TextInputType.number)),
+                  Expanded(
+                    child: TextField(
+                      controller: _priceController,
+                      style: TextStyle(color: textColor),
+                      decoration: _inputDecoration(Icons.payments, isDarkMode, label: "السعر"),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
                   const SizedBox(width: 10),
-                  Expanded(child: TextField(controller: _barcodeController, decoration: _inputDecoration(Icons.qr_code_scanner, label: "الباركود"))),
+                  Expanded(
+                    child: TextField(
+                      controller: _barcodeController,
+                      style: TextStyle(color: textColor),
+                      decoration: _inputDecoration(Icons.qr_code_scanner, isDarkMode, label: "الباركود"),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 25),
@@ -153,15 +168,30 @@ Future<void> _deleteProduct(String productId) async {
     );
   }
 
-  // --- قائمة العرض مع "السحب للحذف" وحساب الكمية ---
-  Widget _buildProductList() {
+ Widget _buildProductList(bool isDarkMode, Color textColor) {
     return StreamBuilder<QuerySnapshot>(
+      // التعديل هنا: سنحذف شرط 'where' مؤقتاً لضمان ظهور البيانات القديمة والجديدة
       stream: FirebaseFirestore.instance.collection('products').orderBy('category').snapshots(),
       builder: (context, snapshot) {
+        if (snapshot.hasError) return SliverToBoxAdapter(child: Center(child: Text("خطأ في التحميل: ${snapshot.error}")));
         if (!snapshot.hasData) return const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator()));
-        
+
+        // تصفية البيانات يدوياً لضمان عدم تعليق التحميل
+        var docs = snapshot.data!.docs.where((d) {
+          var data = d.data() as Map<String, dynamic>;
+          // إذا كان الحقل غير موجود (منتج قديم) سنعتبره false
+          return data['isDeleted'] != true; 
+        }).toList();
+
+        if (docs.isEmpty) {
+          return const SliverToBoxAdapter(child: Center(child: Padding(
+            padding: EdgeInsets.all(20.0),
+            child: Text("لا توجد أصناف حالياً، أضف صنفك الأول"),
+          )));
+        }
+
         Map<String, List<DocumentSnapshot>> grouped = {};
-        for (var d in snapshot.data!.docs) {
+        for (var d in docs) {
           var data = d.data() as Map<String, dynamic>;
           String cat = data.containsKey('category') ? data['category'] : "غير مصنف";
           grouped.putIfAbsent(cat, () => []).add(d);
@@ -174,8 +204,8 @@ Future<void> _deleteProduct(String productId) async {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildCategoryHeader(catName),
-                ...items.map((item) => _buildDismissibleCard(item)),
+                _buildCategoryHeader(catName, isDarkMode),
+                ...items.map((item) => _buildDismissibleCard(item, isDarkMode, textColor)),
               ],
             );
           }, childCount: grouped.keys.length),
@@ -184,35 +214,32 @@ Future<void> _deleteProduct(String productId) async {
     );
   }
 
-  // ويدجت الحذف بالسحب
-
-// ويدجت الحذف بالسحب مع نافذة تأكيد ملكية
-  Widget _buildDismissibleCard(DocumentSnapshot doc) {
+  
+  Widget _buildDismissibleCard(DocumentSnapshot doc, bool isDarkMode, Color textColor) {
     var data = doc.data() as Map<String, dynamic>;
     String productName = data['productName'] ?? "هذا الصنف";
 
     return Dismissible(
       key: Key(doc.id),
-      direction: DismissDirection.endToStart, // السحب من اليمين لليسار
-      
-      // --- إضافة نافذة التأكيد هنا ---
+      direction: DismissDirection.endToStart,
       confirmDismiss: (direction) async {
         return await showDialog(
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
+              backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white, // خلفية الحوار
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: const Row(
+              title: Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.red),
-                  SizedBox(width: 10),
-                  Text("تأكيد الحذف"),
+                  const Icon(Icons.warning_amber_rounded, color: Colors.red),
+                  const SizedBox(width: 10),
+                  Text("تأكيد الحذف", style: TextStyle(color: textColor)),
                 ],
               ),
-              content: Text("هل أنت متأكد من حذف ($productName) نهائياً من جميع المخازن؟"),
+              content: Text("هل أنت متأكد من حذف ($productName) نهائياً؟", style: TextStyle(color: textColor)),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.of(context).pop(false), // إرجاع "خطأ" لعدم الحذف
+                  onPressed: () => Navigator.of(context).pop(false),
                   child: const Text("إلغاء", style: TextStyle(color: Colors.grey)),
                 ),
                 ElevatedButton(
@@ -220,7 +247,7 @@ Future<void> _deleteProduct(String productId) async {
                     backgroundColor: Colors.redAccent,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  onPressed: () => Navigator.of(context).pop(true), // إرجاع "صح" لتنفيذ الحذف
+                  onPressed: () => Navigator.of(context).pop(true),
                   child: const Text("حذف الآن", style: TextStyle(color: Colors.white)),
                 ),
               ],
@@ -228,7 +255,6 @@ Future<void> _deleteProduct(String productId) async {
           },
         );
       },
-
       onDismissed: (direction) => _deleteProduct(doc.id),
       background: Container(
         margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
@@ -246,15 +272,13 @@ Future<void> _deleteProduct(String productId) async {
           ],
         ),
       ),
-      child: _buildProductItemCard(doc),
+      child: _buildProductItemCard(doc, isDarkMode, textColor),
     );
   }
 
-
-  Widget _buildProductItemCard(DocumentSnapshot doc) {
+  Widget _buildProductItemCard(DocumentSnapshot doc, bool isDarkMode, Color textColor) {
     var data = doc.data() as Map<String, dynamic>;
-    
-    // جلب مجموع الكميات من المخازن لكل منتج بشكل لحظي
+
     return StreamBuilder<QuerySnapshot>(
       stream: doc.reference.collection('inventory').snapshots(),
       builder: (context, invSnapshot) {
@@ -266,20 +290,30 @@ Future<void> _deleteProduct(String productId) async {
         }
 
         return Card(
+          // لون البطاقة في القائمة
+          color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           child: ListTile(
             leading: CircleAvatar(
-              backgroundColor: Colors.indigo[50],
-              child: Text(totalQty.toString(), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
+              backgroundColor: isDarkMode ? Colors.indigo[900] : Colors.indigo[50],
+              child: Text(totalQty.toString(), 
+                style: TextStyle(fontWeight: FontWeight.bold, color: isDarkMode ? Colors.white : Colors.indigo)
+              ),
             ),
-            title: Text(data['productName'] ?? "صنف قديم", style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text("${data['subCategory'] ?? '---'} • ${data['barcode'] ?? '---'}"),
+            title: Text(data['productName'] ?? "صنف قديم", 
+              style: TextStyle(fontWeight: FontWeight.bold, color: textColor) // هنا اللون الأسود في اللايت
+            ),
+            subtitle: Text("${data['subCategory'] ?? '---'} • ${data['barcode'] ?? '---'}",
+              style: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[600]),
+            ),
             trailing: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text("${data['price'] ?? 0} ج.م", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
-                const Text("إجمالي رصيد", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                Text("${data['price'] ?? 0} ج.م", 
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)
+                ),
+                Text("إجمالي رصيد", style: TextStyle(fontSize: 10, color: isDarkMode ? Colors.grey[500] : Colors.grey)),
               ],
             ),
           ),
@@ -288,26 +322,36 @@ Future<void> _deleteProduct(String productId) async {
     );
   }
 
-  // (باقي الـ Widgets المساعدة: _buildCategoryHeader, _inputDecoration, _buildSaveButton, إلخ كما هي)
-  Widget _buildCategoryHeader(String title) {
+  Widget _buildCategoryHeader(String title, bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      color: Colors.blue[50], width: double.infinity,
-      child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
+      width: double.infinity,
+      color: isDarkMode ? Colors.grey[900] : Colors.blue[50], // خلفية العنوان
+      child: Text(
+        title, 
+        style: TextStyle(
+          fontWeight: FontWeight.bold, 
+          color: isDarkMode ? Colors.white : const Color(0xFF0D47A1) // لون العنوان
+        )
+      ),
     );
   }
 
-  InputDecoration _inputDecoration(IconData icon, {String? label}) {
+  InputDecoration _inputDecoration(IconData icon, bool isDarkMode, {String? label}) {
     return InputDecoration(
-      labelText: label, prefixIcon: Icon(icon, color: const Color(0xFF0D47A1)),
-      filled: true, fillColor: Colors.grey[50],
+      labelText: label,
+      labelStyle: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[700]),
+      prefixIcon: Icon(icon, color: isDarkMode ? Colors.blueGrey[200] : const Color(0xFF0D47A1)),
+      filled: true,
+      fillColor: isDarkMode ? Colors.grey[800] : Colors.grey[50], // لون خلفية الحقل
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
     );
   }
 
   Widget _buildSaveButton() {
     return SizedBox(
-      width: double.infinity, height: 50,
+      width: double.infinity,
+      height: 50,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(backgroundColor: Colors.amber[700], shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
         onPressed: _isLoading ? null : _saveProduct,
@@ -319,9 +363,8 @@ Future<void> _deleteProduct(String productId) async {
   void _showSnackBar(String msg, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
   }
-  
-  // دالة اختيار التصنيفات (نفس الكود السابق مع استدعاء _addNewCategoryDialog)
-  Widget _buildCategorySelectors() {
+
+  Widget _buildCategorySelectors(bool isDarkMode, Color textColor) {
     return Column(
       children: [
         Row(
@@ -331,16 +374,18 @@ Future<void> _deleteProduct(String productId) async {
                 stream: FirebaseFirestore.instance.collection('categories').snapshots(),
                 builder: (context, snapshot) {
                   return DropdownButtonFormField<String>(
-                    initialValue: _selectedCat,
-                    hint: const Text("اختر الرئيسي"),
-                    decoration: _inputDecoration(Icons.category),
+                    dropdownColor: isDarkMode ? Colors.grey[800] : Colors.white, // لون القائمة المنسدلة
+                    value: _selectedCat,
+                    style: TextStyle(color: textColor), // لون النص المختار
+                    hint: Text("اختر الرئيسي", style: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[700])),
+                    decoration: _inputDecoration(Icons.category, isDarkMode),
                     items: snapshot.hasData ? snapshot.data!.docs.map((doc) => DropdownMenuItem(value: doc['name'].toString(), child: Text(doc['name']))).toList() : [],
                     onChanged: (val) => setState(() { _selectedCat = val; _selectedSubCat = null; }),
                   );
                 },
               ),
             ),
-            IconButton(icon: const Icon(Icons.add_circle, color: Color(0xFF0D47A1)), onPressed: () => _addNewCategoryDialog(isMainCategory: true)),
+            IconButton(icon: Icon(Icons.add_circle, color: isDarkMode ? Colors.blueAccent : const Color(0xFF0D47A1)), onPressed: () => _addNewCategoryDialog(isMainCategory: true, isDarkMode: isDarkMode, textColor: textColor)),
           ],
         ),
         if (_selectedCat != null) ...[
@@ -352,16 +397,18 @@ Future<void> _deleteProduct(String productId) async {
                   stream: FirebaseFirestore.instance.collection('categories').doc(_selectedCat).collection('subcategories').snapshots(),
                   builder: (context, snapshot) {
                     return DropdownButtonFormField<String>(
-                      initialValue: _selectedSubCat,
-                      hint: const Text("اختر الفرعي"),
-                      decoration: _inputDecoration(Icons.account_tree_outlined),
+                      dropdownColor: isDarkMode ? Colors.grey[800] : Colors.white,
+                      value: _selectedSubCat,
+                      style: TextStyle(color: textColor),
+                      hint: Text("اختر الفرعي", style: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[700])),
+                      decoration: _inputDecoration(Icons.account_tree_outlined, isDarkMode),
                       items: snapshot.hasData ? snapshot.data!.docs.map((doc) => DropdownMenuItem(value: doc['name'].toString(), child: Text(doc['name']))).toList() : [],
                       onChanged: (val) => setState(() => _selectedSubCat = val),
                     );
                   },
                 ),
               ),
-              IconButton(icon: const Icon(Icons.add_circle_outline, color: Color(0xFF0D47A1)), onPressed: () => _addNewCategoryDialog(isMainCategory: false)),
+              IconButton(icon: Icon(Icons.add_circle_outline, color: isDarkMode ? Colors.blueAccent : const Color(0xFF0D47A1)), onPressed: () => _addNewCategoryDialog(isMainCategory: false, isDarkMode: isDarkMode, textColor: textColor)),
             ],
           ),
         ],
@@ -369,17 +416,24 @@ Future<void> _deleteProduct(String productId) async {
     );
   }
 
-  void _addNewCategoryDialog({required bool isMainCategory}) {
+  void _addNewCategoryDialog({required bool isMainCategory, required bool isDarkMode, required Color textColor}) {
     TextEditingController newCatController = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(isMainCategory ? "إضافة رئيسي جديد" : "إضافة فرعي لـ $_selectedCat"),
-        content: TextField(controller: newCatController, decoration: _inputDecoration(Icons.add_box)),
+        title: Text(isMainCategory ? "إضافة رئيسي جديد" : "إضافة فرعي لـ $_selectedCat", style: TextStyle(color: textColor)),
+        content: TextField(
+          controller: newCatController, 
+          style: TextStyle(color: textColor),
+          decoration: _inputDecoration(Icons.add_box, isDarkMode)
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("إلغاء")),
-          ElevatedButton(onPressed: () async {
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("إلغاء", style: TextStyle(color: Colors.grey))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
+            onPressed: () async {
             if (newCatController.text.isNotEmpty) {
               String name = newCatController.text.trim();
               if (isMainCategory) {
@@ -389,13 +443,13 @@ Future<void> _deleteProduct(String productId) async {
               }
               Navigator.pop(context);
             }
-          }, child: const Text("حفظ")),
+          }, child: const Text("حفظ", style: TextStyle(color: Colors.black))),
         ],
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Padding(padding: const EdgeInsets.all(20.0), child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)));
+  Widget _buildSectionTitle(String title, Color textColor) {
+    return Padding(padding: const EdgeInsets.all(20.0), child: Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)));
   }
 }
