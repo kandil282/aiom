@@ -277,37 +277,14 @@ Future<void> _updateAvailableStock(String prodId) async {
 
   Future<void> _submitToFirestore() async {
     // استخدمت UID المندوب الممرر في البارامتر
-    // await FirebaseFirestore.instance.collection('agent_orders').add({
-    //   'customerId': selectedCustomerId,
-    //   'agentId': widget.agentId, 
-    //   'items': orderItems,
-    //   'totalAmount': orderItems.fold(0.0, (sum, item) => sum + item['total']),
-    //   'status': 'pending',
-    //   'orderDate': FieldValue.serverTimestamp(),
-    // });
-
-    String currentAgentName = FirebaseAuth.instance.currentUser?.displayName ?? "مندوب غير معروف";
-
-    await FirebaseFirestore.instance
-    .collection('customers')
-    .doc(selectedCustomerId) // معرف العميل اللي المندوب اختاره
-    .collection('transactions')
-    .add({
-  'type': 'invoice',
-  'amount': double.tryParse(amountController.text) ?? 0.0,
-  'date': FieldValue.serverTimestamp(), // استخدم وقت السيرفر لدقة الـ Live Feed
-  
-  // --- السطرين السحريين اللي هيحلوا مشكلة "غير معروف" ---
-  'customerName': selectedCustomerName, // اسم العميل اللي المندوب اختاره من القائمة
-  'agentName': currentAgentName,        // اسم المندوب اللي سجل العملية
-  'agentId': FirebaseAuth.instance.currentUser?.uid, // عشان نربطها بالعمولة صح
-        'customerId': selectedCustomerId,
-            'status': 'pending',
-                'items': orderItems,
-
-
-
-});
+    await FirebaseFirestore.instance.collection('agent_orders').add({
+      'customerId': selectedCustomerId,
+      'agentId': widget.agentId, 
+      'items': orderItems,
+      'totalAmount': orderItems.fold(0.0, (sum, item) => sum + item['total']),
+      'status': 'pending',
+      'orderDate': FieldValue.serverTimestamp(),
+    });
     if (mounted) Navigator.pop(context);
   }
 
