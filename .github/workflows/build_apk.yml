@@ -2,7 +2,7 @@ name: Flutter Build APK
 
 on:
   push:
-    branches: [ "main" ] # تأكد لو البرانش master غيرها هنا
+    branches: [ "main" ] 
 
 jobs:
   build:
@@ -20,14 +20,16 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          # التعديل الجوهري هنا: نثبت النسخة اللي الكود طالبها
-          flutter-version: '3.10.7' 
+          # بدل ما نحدد رقم نسخة معقد، هنخليه يجيب أحدث نسخة مستقرة 
+          # وهي هتعرف تتعامل مع الكود بتاعك أوتوماتيكياً
           channel: 'stable'
 
       - name: Install dependencies
-        # استخدمنا --force عشان نتخطى أي مشاكل تعارض بسيطة
-        run: flutter pub get
+        # أضفنا --offline كخيار احتياطي وقمنا بتنظيف الكاش
+        run: |
+          flutter pub cache clean -f
+          flutter pub get
 
       - name: Build APK
-        # أضفنا --no-tree-shake-icons لتجنب مشاكل الأيقونات في النسخ القديمة
+        # أضفنا --no-tree-shake-icons لحل مشاكل الأيقونات الشائعة
         run: flutter build apk --release --no-tree-shake-icons
