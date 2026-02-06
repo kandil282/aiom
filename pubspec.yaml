@@ -54,6 +54,7 @@ dependencies:
   location: ^8.0.1
   async: ^2.13.0
   google_maps_flutter: ^2.14.0
+  universal_html: ^2.3.0
 
 dev_dependencies:
   flutter_test:
