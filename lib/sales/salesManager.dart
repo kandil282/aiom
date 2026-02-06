@@ -101,7 +101,9 @@ Future<Map<String, double>> _getAgentDetailedStats(String agentId) async {
       .where('agentId', isEqualTo: agentId)
       .where('status', isEqualTo: 'confirmed')
       .get();
-  for (var doc in agentStream.docs) totalCollections += (doc['amount'] ?? 0).toDouble();
+  for (var doc in agentStream.docs) {
+    totalCollections += (doc['amount'] ?? 0).toDouble();
+  }
 
   // 2. التحصيل المباشر
   var directPayments = await FirebaseFirestore.instance
@@ -109,7 +111,9 @@ Future<Map<String, double>> _getAgentDetailedStats(String agentId) async {
       .where('agentId', isEqualTo: agentId)
       .where('type', isEqualTo: 'direct_collection')
       .get();
-  for (var doc in directPayments.docs) totalCollections += (doc['amount'] ?? 0).toDouble();
+  for (var doc in directPayments.docs) {
+    totalCollections += (doc['amount'] ?? 0).toDouble();
+  }
 
   // 3. الشيكات المحصلة
   var cashedChecks = await FirebaseFirestore.instance
@@ -194,7 +198,7 @@ future: Future.wait(userSnap.data!.docs.map((userDoc) async {
                       crossAxisAlignment: CrossAxisAlignment.end, 
                       children: [
                         if (top3.length > 1) _buildPodiumPlace(top3[1], 2, 140, Colors.grey.shade400, isDark),
-                        if (top3.length > 0) _buildPodiumPlace(top3[0], 1, 180, Colors.amber, isDark),
+                        if (top3.isNotEmpty) _buildPodiumPlace(top3[0], 1, 180, Colors.amber, isDark),
                         if (top3.length > 2) _buildPodiumPlace(top3[2], 3, 110, Colors.brown.shade300, isDark),
                       ],
                     ),

@@ -375,7 +375,7 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
                 builder: (context, snapshot) {
                   return DropdownButtonFormField<String>(
                     dropdownColor: isDarkMode ? Colors.grey[800] : Colors.white, // لون القائمة المنسدلة
-                    value: _selectedCat,
+                    initialValue: _selectedCat,
                     style: TextStyle(color: textColor), // لون النص المختار
                     hint: Text("اختر الرئيسي", style: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[700])),
                     decoration: _inputDecoration(Icons.category, isDarkMode),
@@ -398,7 +398,7 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
                   builder: (context, snapshot) {
                     return DropdownButtonFormField<String>(
                       dropdownColor: isDarkMode ? Colors.grey[800] : Colors.white,
-                      value: _selectedSubCat,
+                      initialValue: _selectedSubCat,
                       style: TextStyle(color: textColor),
                       hint: Text("اختر الفرعي", style: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[700])),
                       decoration: _inputDecoration(Icons.account_tree_outlined, isDarkMode),

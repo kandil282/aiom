@@ -2,29 +2,32 @@ name: Flutter Build APK
 
 on:
   push:
-    branches: [ "main" ] # أو اسم البرانش بتاعك
+    branches: [ "main" ] # تأكد لو البرانش master غيرها هنا
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
-          java-version: '17' # السطر السحري اللي هيحل مشكلة الـ Version 69
+          distribution: 'temurin'
+          java-version: '17' 
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.0' # أو النسخة اللي شغال بيها
+          # التعديل الجوهري هنا: نثبت النسخة اللي الكود طالبها
+          flutter-version: '3.10.7' 
           channel: 'stable'
 
       - name: Install dependencies
+        # استخدمنا --force عشان نتخطى أي مشاكل تعارض بسيطة
         run: flutter pub get
 
       - name: Build APK
-        run: flutter build apk --release
+        # أضفنا --no-tree-shake-icons لتجنب مشاكل الأيقونات في النسخ القديمة
+        run: flutter build apk --release --no-tree-shake-icons

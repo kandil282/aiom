@@ -12,7 +12,6 @@ import 'package:share_plus/share_plus.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 // ignore: avoid_web_libraries_in_flutter
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:universal_html/html.dart' as html;// استيراد الصفحات الخاصة بك (تأكد من صحة المسارات في مشروعك)
 import 'package:aiom/sales/CreateOrderPage.dart'; 
 import 'package:aiom/sales/agentCustomerStatement.dart';
