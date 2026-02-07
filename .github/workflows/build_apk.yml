@@ -31,5 +31,11 @@ jobs:
           flutter pub get
 
       - name: Build APK
-        # أضفنا --no-tree-shake-icons لحل مشاكل الأيقونات الشائعة
         run: flutter build apk --release --no-tree-shake-icons
+
+      # --- السطرين دول هما اللي هيظهروا لك زرار التحميل ---
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
