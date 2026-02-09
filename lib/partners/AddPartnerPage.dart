@@ -1,3 +1,4 @@
+import 'package:aiom/configer/settingPage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -21,7 +22,7 @@ class _ManageCustomersPageState extends State<ManageCustomersPage> {
   // دالة الحفظ
   Future<void> _saveCustomer() async {
     if (_nameController.text.isEmpty || _selectedAgentId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("برجاء إدخال الاسم واختيار البائع")));
+      ScaffoldMessenger.of(context).showSnackBar( SnackBar(content: Text(Translate.text(context, "برجاء إدخال الاسم واختيار البائع", "Please enter the customer name and select an agent"))));
       return;
     }
     setState(() => _isLoading = true);
@@ -37,9 +38,9 @@ class _ManageCustomersPageState extends State<ManageCustomersPage> {
       _nameController.clear();
       _phoneController.clear();
       setState(() { _selectedAgentId = null; _selectedAgentName = null; });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تمت إضافة العميل بنجاح ✅")));
+      ScaffoldMessenger.of(context).showSnackBar( SnackBar(content: Text(Translate.text(context, "تمت إضافة العميل بنجاح ✅", "Customer added successfully ✅"))));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("حدث خطأ أثناء الحفظ")));
+      ScaffoldMessenger.of(context).showSnackBar( SnackBar(content: Text(Translate.text(context, "حدث خطأ أثناء الحفظ", "An error occurred while saving"))));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -55,7 +56,7 @@ class _ManageCustomersPageState extends State<ManageCustomersPage> {
       // اللون يتغير تلقائياً حسب الثيم
       backgroundColor: isDark ? const Color(0xff0f172a) : Colors.grey[50],
       appBar: AppBar(
-        title: const Text("إدارة العملاء", style: TextStyle(fontWeight: FontWeight.bold)),
+        title:  Text(Translate.text(context, "إدارة العملاء", "Manage Customers"), style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: isDark ? const Color(0xFF102A43) : primaryColor,
         elevation: 0,
@@ -83,14 +84,14 @@ class _ManageCustomersPageState extends State<ManageCustomersPage> {
           TextField(
             controller: _nameController,
             style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-            decoration: _inputStyle("اسم العميل الجديد", Icons.person_add, isDark),
+            decoration: _inputStyle(Translate.text(context, "اسم العميل الجديد", "New Customer Name"), Icons.person_add, isDark),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _phoneController,
             style: TextStyle(color: isDark ? Colors.white : Colors.black87),
             keyboardType: TextInputType.phone,
-            decoration: _inputStyle("رقم التليفون", Icons.phone, isDark),
+            decoration: _inputStyle(Translate.text(context, "رقم التليفون", "Phone Number"), Icons.phone, isDark),
           ),
           const SizedBox(height: 12),
           _buildAgentDropdown(isDark),
@@ -106,8 +107,8 @@ class _ManageCustomersPageState extends State<ManageCustomersPage> {
               ),
               onPressed: _isLoading ? null : _saveCustomer,
               child: _isLoading
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text("إضافة العميل للنظام", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ?  CircularProgressIndicator(color: Colors.white)
+                  :  Text(Translate.text(context, "إضافة العميل للنظام", "Add Customer to System"), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
             ),
           ),
         ],
@@ -123,7 +124,7 @@ class _ManageCustomersPageState extends State<ManageCustomersPage> {
         onChanged: (val) => setState(() => _searchQuery = val.trim()),
         style: TextStyle(color: isDark ? Colors.white : Colors.black87),
         decoration: InputDecoration(
-          hintText: "بحث بالاسم أو رقم التليفون...",
+          hintText: Translate.text(context, "بحث بالاسم أو رقم التليفون...", "Search by name or phone number"),
           hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.grey),
           prefixIcon: const Icon(Icons.search, color: Colors.blueAccent),
           filled: true,
@@ -141,7 +142,7 @@ class _ManageCustomersPageState extends State<ManageCustomersPage> {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('customers').orderBy('createdAt', descending: true).snapshots(),
       builder: (context, snapshot) {
-        if (snapshot.hasError) return const Center(child: Text("خطأ في تحميل البيانات"));
+        if (snapshot.hasError) return  Center(child: Text(Translate.text(context, "خطأ في تحميل البيانات", "Error loading data")));
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
         var filteredDocs = snapshot.data!.docs.where((doc) {
@@ -167,9 +168,9 @@ class _ManageCustomersPageState extends State<ManageCustomersPage> {
                   child: Text(data['name']?[0].toUpperCase() ?? "?", 
                     style: TextStyle(color: isDark ? Colors.white : Colors.blueAccent, fontWeight: FontWeight.bold)),
                 ),
-                title: Text(data['name'] ?? "بدون اسم", 
+                title: Text(data['name'] ?? Translate.text(context, "بدون اسم", "Unnamed Customer"), 
                   style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontWeight: FontWeight.bold)),
-                subtitle: Text("ت: ${data['phone'] ?? 'لا يوجد'} \nالمندوب: ${data['addedByAgent'] ?? 'غير محدد'}",
+                subtitle: Text(Translate.text(context, "ت: ${data['phone'] ?? 'لا يوجد'} \nالمندوب: ${data['addedByAgent'] ?? 'غير محدد'}", "Phone: ${data['phone'] ?? 'No phone number'} \nAgent: ${data['addedByAgent'] ?? 'Not specified'}"),
                   style: TextStyle(color: isDark ? Colors.white60 : Colors.grey[600], fontSize: 12)),
                 isThreeLine: true,
                 trailing: Wrap(
@@ -204,12 +205,12 @@ class _ManageCustomersPageState extends State<ManageCustomersPage> {
             Map<String, dynamic> d = agent.data() as Map<String, dynamic>;
             return DropdownMenuItem<String>(
               value: agent.id,
-              child: Text(d['username'] ?? "مجهول"),
+              child: Text(d['username'] ?? Translate.text(context, "مجهول", "Unknown")),
               onTap: () => _selectedAgentName = d['username'],
             );
           }).toList(),
           onChanged: (v) => setState(() => _selectedAgentId = v),
-          decoration: _inputStyle("البائع المسؤول", Icons.badge, isDark),
+          decoration: _inputStyle(Translate.text(context, "البائع المسؤول", "Responsible Sales Agent"), Icons.badge, isDark),
         );
       },
     );
@@ -225,25 +226,25 @@ class _ManageCustomersPageState extends State<ManageCustomersPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: isDark ? const Color(0xff0f172a) : Colors.white,
-        title: Text("تعديل بيانات العميل", style: TextStyle(color: isDark ? Colors.white : Colors.black)),
+        title: Text(Translate.text(context, "تعديل بيانات العميل", "Edit Partner Details"), style: TextStyle(color: isDark ? Colors.white : Colors.black)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: editName, style: TextStyle(color: isDark ? Colors.white : Colors.black), decoration: _inputStyle("الاسم", Icons.person, isDark)),
+            TextField(controller: editName, style: TextStyle(color: isDark ? Colors.white : Colors.black), decoration: _inputStyle(Translate.text(context, "الاسم", "Name"), Icons.person, isDark)),
             const SizedBox(height: 10),
-            TextField(controller: editPhone, style: TextStyle(color: isDark ? Colors.white : Colors.black), decoration: _inputStyle("التليفون", Icons.phone, isDark)),
+            TextField(controller: editPhone, style: TextStyle(color: isDark ? Colors.white : Colors.black), decoration: _inputStyle(Translate.text(context, "التليفون", "Phone"), Icons.phone, isDark)),
             const SizedBox(height: 10),
             _buildAgentDropdown(isDark, initialId: _selectedAgentId),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("إلغاء")),
+          TextButton(onPressed: () => Navigator.pop(context), child:  Text(Translate.text(context, "إلغاء", "Cancel"))),
           ElevatedButton(
             onPressed: () async {
               await doc.reference.update({'name': editName.text.trim(), 'phone': editPhone.text.trim(), 'agentId': _selectedAgentId, 'addedByAgent': _selectedAgentName});
               Navigator.pop(context);
             },
-            child: const Text("تحديث")
+            child: Text(Translate.text(context, "تحديث", "Update"))
           ),
         ],
       ),
@@ -255,13 +256,13 @@ class _ManageCustomersPageState extends State<ManageCustomersPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: isDark ? const Color(0xff1e293b) : Colors.white,
-        title: const Text("تأكيد الحذف"),
-        content: const Text("هل أنت متأكد من حذف العميل؟"),
+        title:  Text(Translate.text(context, "تأكيد الحذف", "Confirm Deletion")),
+        content:  Text(Translate.text(context, "هل أنت متأكد من حذف العميل؟", "Are you sure you want to delete this partner?")),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("إلغاء")),
+          TextButton(onPressed: () => Navigator.pop(context), child:  Text(Translate.text(context, "إلغاء", "Cancel"))),
           ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), 
             onPressed: () async { await doc.reference.delete(); Navigator.pop(context); }, 
-            child: const Text("حذف", style: TextStyle(color: Colors.white)))
+            child:  Text(Translate.text(context, "حذف", "Delete"), style: TextStyle(color: Colors.white)))
         ],
       ),
     );

@@ -1,3 +1,4 @@
+import 'package:aiom/configer/settingPage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -61,10 +62,24 @@ Future<void> _confirmSettlement(String docId, Map<String, dynamic> data) async {
         'agentName': data['agentName'] ?? 'N/A',
         'amount': amount,
         'date': FieldValue.serverTimestamp(),
-        'details': "سند قبض نقدي (عن طريق المندوب) رقم :${data['receiptNo']}",
+        'details': Translate.text(context, "سند قبض نقدي (عن طريق المندوب) رقم :${data['receiptNo']}", "Cash Receipt (via Agent) No: ${data['receiptNo']}"),
         'receiptNo': data['receiptNo'] ?? 'N/A',
         'type': "payment",
       });
+      DocumentReference globalTransRef = custRef.collection('global_transactions').doc();
+      batch.set(globalTransRef, {
+        'agentName': data['agentName'] ?? 'N/A',
+        'amount': amount,
+        'date': FieldValue.serverTimestamp(),
+        'details': Translate.text(context, "سند قبض نقدي (عن طريق المندوب) رقم :${data['receiptNo']}", "Cash Receipt (via Agent) No: ${data['receiptNo']}"),
+        'receiptNo': data['receiptNo'] ?? 'N/A',
+        'type': "payment",
+      }
+      
+      
+      
+      
+      );
     }
 
     // ============================================================
@@ -83,14 +98,14 @@ Future<void> _confirmSettlement(String docId, Map<String, dynamic> data) async {
     batch.set(vaultTransRef, {
       'type': 'income', // وارد
       'amount': amount,
-      'description': "تأكيد تحصيل مندوب: ${data['agentName']} - ${data['customerName']}",
+      'description': Translate.text(context, "تأكيد تحصيل مندوب: ${data['agentName']} - ${data['customerName']}", "Confirmed Collection by Agent: ${data['agentName']} - ${data['customerName']}"),
       'date': FieldValue.serverTimestamp(),
       'sourceDoc': docId,
     });
 
     await batch.commit();
 
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم الاعتماد، الترحيل للخزنة، وتحديث حساب العميل ✅"), backgroundColor: Colors.green));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(Translate.text(context, "تم الاعتماد، الترحيل للخزنة، وتحديث حساب العميل ✅", "Settled, transferred to vault, and customer account updated ✅")) ,backgroundColor: Colors.green));
   } catch (e) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("خطأ: $e"), backgroundColor: Colors.red));
   } finally {
@@ -111,7 +126,7 @@ void _showDirectCollectionDialog() {
       builder: (context, setStateDialog) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text("تحصيل مباشر من عميل (للخزنة)"),
+          title: Text(Translate.text(context, "تحصيل مباشر من عميل (للخزنة)", "Direct Collection from Customer (to Vault)")),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -131,7 +146,7 @@ void _showDirectCollectionDialog() {
                     }).toList();
 
                     return DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(labelText: "اختر العميل", border: OutlineInputBorder()),
+                      decoration: InputDecoration(labelText: Translate.text(context, "اختر العميل", "Select Customer"), border: OutlineInputBorder()),
                       items: items,
                       onChanged: (val) => setStateDialog(() => selectedCustomerId = val),
                     );
@@ -142,22 +157,22 @@ void _showDirectCollectionDialog() {
                 TextField(
                   controller: amountController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: "المبلغ المحصل", suffixText: "ج.م", border: OutlineInputBorder()),
+                  decoration: InputDecoration(labelText: Translate.text(context, "المبلغ المحصل", "Amount Collected"), suffixText: "ج.م", border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 15),
                 // رقم الإيصال (اختياري)
                 TextField(
                   controller: receiptController,
-                  decoration: const InputDecoration(labelText: "رقم الإيصال الورقي (إن وجد)", border: OutlineInputBorder()),
+                  decoration: InputDecoration(labelText: Translate.text(context, "رقم الإيصال الورقي (إن وجد)", "Paper Receipt Number (if any)"), border: OutlineInputBorder()),
                 ),
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("إلغاء")),
+            TextButton(onPressed: () => Navigator.pop(context), child: Text(Translate.text(context, "إلغاء", "Cancel"))),
             ElevatedButton.icon(
               icon: const Icon(Icons.save),
-              label: const Text("حفظ وترحيل للخزنة"),
+              label: Text(Translate.text(context, "حفظ وترحيل للخزنة", "Save and Transfer to Vault")),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
               onPressed: () async {
                 if (selectedCustomerId == null || amountController.text.isEmpty) return;
@@ -186,7 +201,7 @@ Future<void> _processDirectCollection(String custId, String custName, double amo
     // 1. جلب وثيقة العميل للتأكد من المندوب المرتبط به
     DocumentSnapshot custDoc = await FirebaseFirestore.instance.collection('customers').doc(custId).get();
     
-    if (!custDoc.exists) throw "العميل غير موجود";
+    if (!custDoc.exists) throw Translate.text(context, "العميل غير موجود", "Customer does not exist");
     
     // استخراج بيانات المندوب من وثيقة العميل (كما تظهر في الصورة image_c658db.jpg)
     Map<String, dynamic> custData = custDoc.data() as Map<String, dynamic>;
@@ -223,7 +238,7 @@ Future<void> _processDirectCollection(String custId, String custName, double amo
 
     await batch.commit();
     if (!mounted) return; // تأكد أن الصفحة لا تزال موجودة
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ تم التحصيل وربطه بالمندوب بنجاح")));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(Translate.text(context, "✅ تم التحصيل وربطه بالمندوب بنجاح", "✅ Collection completed and linked to agent successfully"))));
   } catch (e) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("❌ خطأ: $e")));
   }
@@ -238,8 +253,8 @@ Future<void> _processDirectCollection(String custId, String custName, double amo
     return Scaffold(
       backgroundColor: darkBackground,
       appBar: AppBar(
-        title: const Text("لوحة تحكم الخزينة", 
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 18)),
+        title: Text(Translate.text(context, "لوحة تحكم الخزينة", "Vault Control Panel"), 
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 18)),
         centerTitle: true,
         backgroundColor: darkCard,
         elevation: 0,
@@ -249,9 +264,9 @@ Future<void> _processDirectCollection(String custId, String custName, double amo
           unselectedLabelColor: Colors.grey,
           indicatorColor: accentColor,
           indicatorWeight: 3,
-          tabs: const [
-            Tab(icon: Icon(Icons.account_balance_wallet), text: "تحصيلات المناديب"),
-            Tab(icon: Icon(Icons.outbound), text: "عهد الموظفين"),
+          tabs: [
+            Tab(icon: const Icon(Icons.account_balance_wallet), text:Translate.text(context, "تحصيلات المناديب", "Agent Collections")),
+            Tab(icon: const Icon(Icons.outbound), text: Translate.text(context, "عهد الموظفين", "Staff Advances")),
           ],
         ),
       ),
@@ -271,7 +286,7 @@ Future<void> _processDirectCollection(String custId, String custName, double amo
             onPressed: _showDirectCollectionDialog,
             backgroundColor: Colors.greenAccent[700], // أخضر زاهي للدارك مود
             icon: const Icon(Icons.add_card, color: Colors.white),
-            label: const Text("تحصيل مباشر", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            label: Text(Translate.text(context, "تحصيل مباشر", "Direct Collection"), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
           const SizedBox(height: 12),
           // زر صرف العهدة
@@ -280,7 +295,7 @@ Future<void> _processDirectCollection(String custId, String custName, double amo
             onPressed: _openIssueExpenseSheet,
             backgroundColor: accentColor,
             icon: const Icon(Icons.outbound, color: Colors.white),
-            label: const Text("صرف عهدة", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            label: Text(Translate.text(context, "صرف عهدة", "Issue Advance"), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -351,7 +366,7 @@ Widget _buildModernCard(String id, Map<String, dynamic> data) {
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: textWhite)
           ),
           subtitle: Text(
-            "بواسطة: ${data['agentName'] ?? 'غير معروف'}", 
+            "بواسطة: ${data['agentName'] ?? Translate.text(context, "غير معروف", "Unknown")}", 
             style: const TextStyle(fontSize: 12, color: textGrey)
           ),
           trailing: Column(
@@ -403,9 +418,9 @@ Widget _buildModernCard(String id, Map<String, dynamic> data) {
                         width: 20, 
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
                       )
-                    : const Text(
-                        "تأكيد واستلام النقدية", 
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+                    : Text(
+                        Translate.text(context, "تأكيد واستلام النقدية", "Confirm and Receive Cash"),
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
                       ),
                 ),
               ),
@@ -430,11 +445,11 @@ Widget _buildModernCard(String id, Map<String, dynamic> data) {
           child: Row(
             children: [
               Expanded(
-                child: _statCard("إجمالي المعلق", "${total.toStringAsFixed(0)} ج.م", Icons.timer, Colors.orange),
+                child: _statCard(Translate.text(context, "إجمالي المعلق", "Total Pending"), "${total.toStringAsFixed(0)} ج.م", Icons.timer, Colors.orange),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _statCard("عدد العمليات", "${snap.hasData ? snap.data!.docs.length : 0}", Icons.list_alt, Colors.blue),
+                child: _statCard(Translate.text(context, "عدد العمليات", "Number of Transactions"), "${snap.hasData ? snap.data!.docs.length : 0}", Icons.list_alt, Colors.blue),
               ),
             ],
           ),
@@ -505,7 +520,7 @@ Widget _buildAgentFilter() {
                   child: const Icon(Icons.person, color: Colors.indigoAccent, size: 18),
                 ),
               ),
-              hintText: "تصفية حسب المندوب",
+              hintText: Translate.text(context, "تصفية حسب المندوب", "Filter by Agent"),
               hintStyle: const TextStyle(color: Colors.white54),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -513,9 +528,9 @@ Widget _buildAgentFilter() {
             initialValue: selectedAgentFilter,
             icon: const Icon(Icons.keyboard_arrow_down, color: Colors.indigoAccent),
             items: [
-              const DropdownMenuItem(
+              DropdownMenuItem(
                 value: null, 
-                child: Text("عرض كل المناديب", style: TextStyle(color: Colors.white54)),
+                child: Text(Translate.text(context, "عرض كل المناديب", "Show All Agents"), style: const TextStyle(color: Colors.white54)),
               ),
               ...agentNames.map((name) => DropdownMenuItem(
                     value: name,
@@ -552,10 +567,10 @@ Widget _buildStaffExpensesTab() {
         .orderBy('date', descending: true)
         .snapshots(),
     builder: (context, snapshot) {
-      if (snapshot.hasError) return Center(child: Text("خطأ في البيانات: ${snapshot.error}"));
+      if (snapshot.hasError) return Center(child: Text(Translate.text(context, "خطأ في البيانات: ${snapshot.error}", "Data Error: ${snapshot.error}")));
       if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
       if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-        return const Center(child: Text("لا توجد عهد معلقة حالياً"));
+        return Center(child: Text(Translate.text(context, "لا توجد عهد معلقة حالياً", "No Pending Advances")));
       }
 
       return ListView.builder(
@@ -566,7 +581,7 @@ Widget _buildStaffExpensesTab() {
           var data = doc.data() as Map<String, dynamic>;
           
           // تأكد من أسماء الحقول كما في صورتك
-          String empName = data['employeeName'] ?? "غير معروف";
+          String empName = data['employeeName'] ?? Translate.text(context, "غير معروف", "Unknown");
           double amount = (data['amount'] ?? 0).toDouble();
           String note = data['note'] ?? "";
 
@@ -578,11 +593,11 @@ Widget _buildStaffExpensesTab() {
               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               leading: const CircleAvatar(backgroundColor: Colors.orange, child: Icon(Icons.money, color: Colors.white)),
               title: Text(empName, style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text("البيان: $note\nالمبلغ: $amount ج.م"),
+              subtitle: Text("${Translate.text(context, "البيان", "Note")}: $note\n${Translate.text(context, "المبلغ", "Amount")}: $amount ج.م"),
               trailing: ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo, foregroundColor: Colors.white),
                 onPressed: () => _showSettleDialog(doc.id, empName, amount),
-                child: const Text("تسوية"),
+                child: Text(Translate.text(context, "تسوية", "Settle")),
               ),
             ),
           );
@@ -600,18 +615,18 @@ void _settleAdvanceDialog(String docId, String name, double totalGiven) {
     context: context,
     builder: (context) => AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text("تسوية عهدة: $name"),
+      title: Text(Translate.text(context, "تسوية عهدة: $name", "Settle Advance: $name")),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text("المبلغ المنصرف للموظف: $totalGiven ج.م", style: const TextStyle(color: Colors.blue)),
+          Text("${Translate.text(context, "المبلغ المنصرف للموظف", "Amount Given to Employee")} $totalGiven ج.م", style: const TextStyle(color: Colors.blue)),
           const SizedBox(height: 15),
           TextField(
             controller: spentController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: "ما تم صرفه فعلياً",
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: "${Translate.text(context, "ما تم صرفه فعلياً", "Actual Amount Spent")}",
+              border: const OutlineInputBorder(),
               suffixText: "ج.م",
             ),
           ),
@@ -633,7 +648,7 @@ void _settleAdvanceDialog(String docId, String name, double totalGiven) {
               'category': "عهدة موظفين", // نفس الحقل في صورتك
               'date': FieldValue.serverTimestamp(),
               'recordedBy': name, // اسم الموظف اللي صرف
-              'title': "تسوية عهدة مصروفات",
+              'title': Translate.text(context, "تسوية عهدة مصروفات", "Settled Advance Expenses"),
             });
 
             // 2. تحديث مستند العهدة ليكون "تمت التسوية"
@@ -646,10 +661,10 @@ void _settleAdvanceDialog(String docId, String name, double totalGiven) {
 
             Navigator.pop(context);
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("تمت التسوية. المرتجع للخزينة: $returnedToSafe ج.م")),
+              SnackBar(content: Text(Translate.text(context, "تمت التسوية. المرتجع للخزينة: $returnedToSafe ج.م", "Settlement Complete. Amount Returned to Safe: $returnedToSafe JOD"))),
             );
           },
-          child: const Text("تأكيد التسوية"),
+          child: Text(Translate.text(context, "تأكيد التسوية", "Confirm Settlement")),
         ),
       ],
     ),
@@ -663,25 +678,25 @@ void _showSettleDialog(String docId, String empName, double totalAdvance) {
     context: context,
     builder: (context) => AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text("تسوية عهدة $empName"),
+      title: Text(Translate.text(context, "تسوية عهدة $empName", "Settle Advance for $empName")),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text("المبلغ المستلم: $totalAdvance ج.م"),
+          Text("${Translate.text(context, "المبلغ المستلم", "Amount Received")}: $totalAdvance ج.م"),
           const SizedBox(height: 15),
           TextField(
             controller: spentCtrl,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: "المبلغ المصروف فعلياً",
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: "${Translate.text(context, "المبلغ المصروف فعلياً", "Actual Amount Spent")}",
+              border: const OutlineInputBorder(),
               suffixText: "ج.م",
             ),
           ),
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text("إلغاء")),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(Translate.text(context, "إلغاء", "Cancel"))),
         ElevatedButton(
           style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
           onPressed: () async {
@@ -695,7 +710,7 @@ void _showSettleDialog(String docId, String empName, double totalAdvance) {
               'category': "عهد موظفين",
               'date': FieldValue.serverTimestamp(),
               'recordedBy': empName,
-              'title': "تسوية عهدة مصروفات",
+              'title': Translate.text(context, "تسوية عهدة مصروفات", "Settled Advance Expenses"),
             });
 
             // 2. تحديث حالة العهدة الأصلية
@@ -708,10 +723,10 @@ void _showSettleDialog(String docId, String empName, double totalAdvance) {
 
             Navigator.pop(context);
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("تمت التسوية بنجاح. المتبقي للخزينة: $returnedToSafe ج.م")),
+              SnackBar(content: Text(Translate.text(context, "تمت التسوية بنجاح. المتبقي للخزينة: $returnedToSafe ج.م", "Settlement Complete. Amount Returned to Safe: $returnedToSafe JOD"))),
             );
           },
-          child: const Text("تأكيد التسوية", style: TextStyle(color: Colors.white)),
+          child: Text(Translate.text(context, "تأكيد التسوية", "Confirm Settlement"), style: const TextStyle(color: Colors.white)),
         ),
       ],
     ),
@@ -752,9 +767,9 @@ void _openIssueExpenseSheet() {
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              const Text(
-                "تسجيل صرف عهدة موظف",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
+              Text(
+                Translate.text(context, "تسجيل صرف عهدة موظف", "Issue Staff Advance"),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
               ),
               const SizedBox(height: 25),
               StreamBuilder<QuerySnapshot>(
@@ -766,7 +781,7 @@ void _openIssueExpenseSheet() {
                   if (!snap.hasData) return const CircularProgressIndicator();
                   var items = snap.data!.docs.map((d) {
                     var data = d.data() as Map<String, dynamic>;
-                    String nameToShow = data['username'] ?? "بدون اسم";
+                    String nameToShow = data['username'] ?? Translate.text(context, "بدون اسم", "No Name");
                     return DropdownMenuItem<String>(
                       value: nameToShow,
                       child: Text(nameToShow, style: const TextStyle(color: Colors.white)),
@@ -777,7 +792,7 @@ void _openIssueExpenseSheet() {
                     dropdownColor: const Color(0xFF1E293B),
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      labelText: "اختر الموظف",
+                      labelText: Translate.text(context, "اختر الموظف", "Select Employee"),
                       labelStyle: const TextStyle(color: Colors.white70),
                       enabledBorder: OutlineInputBorder(
                         borderSide: const BorderSide(color: Colors.white10),
@@ -797,7 +812,7 @@ void _openIssueExpenseSheet() {
                 keyboardType: TextInputType.number,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  labelText: "المبلغ",
+                  labelText: Translate.text(context, "المبلغ", "Amount"),
                   labelStyle: const TextStyle(color: Colors.white70),
                   enabledBorder: OutlineInputBorder(
                     borderSide: const BorderSide(color: Colors.white10),
@@ -812,7 +827,7 @@ void _openIssueExpenseSheet() {
                 controller: noteController,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  labelText: "البيان (بنزين، صيانة..)",
+                  labelText: Translate.text(context, "البيان (بنزين، صيانة..)", "Note (Gas, Maintenance..)"),
                   labelStyle: const TextStyle(color: Colors.white70),
                   enabledBorder: OutlineInputBorder(
                     borderSide: const BorderSide(color: Colors.white10),
@@ -843,7 +858,7 @@ void _openIssueExpenseSheet() {
                     'note': noteController.text,
                     'status': 'pending',
                     'date': FieldValue.serverTimestamp(),
-                    'type': 'صرف عهدة'
+                    'type': Translate.text(context, 'صرف عهدة', 'Staff Advance Issuance')
                   });
 
                   DocumentReference vaultRef = FirebaseFirestore.instance.collection('vault').doc('main_vault');
@@ -852,7 +867,7 @@ void _openIssueExpenseSheet() {
                   await batch.commit();
                   if (mounted) Navigator.pop(context);
                 },
-                child: const Text("تأكيد الصرف", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                child: Text(Translate.text(context, "تأكيد الصرف", "Confirm Issuance"), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               )
             ],
           ),

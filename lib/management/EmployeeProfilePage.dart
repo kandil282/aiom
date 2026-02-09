@@ -1,3 +1,4 @@
+import 'package:aiom/configer/settingPage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -22,14 +23,14 @@ class _EmployeeControlPanelState extends State<EmployeeControlPanel> {
       child: Scaffold(
         backgroundColor: isDark ? const Color(0xff0f172a) : const Color(0xfff8fafc),
         appBar: AppBar(
-          title: Text(widget.userData['username'] ?? "ملف الموظف"),
+          title: Text(widget.userData['username'] ?? Translate.text(context, "ملف الموظف", "Employee Profile")),
           backgroundColor: const Color(0xff134e4a),
-          bottom: const TabBar(
+          bottom:  TabBar(
             indicatorColor: Colors.orangeAccent,
             tabs: [
-              Tab(icon: Icon(Icons.calendar_month), text: "الحضور"),
-              Tab(icon: Icon(Icons.payments_outlined), text: "المرتبات"),
-              Tab(icon: Icon(Icons.gavel_rounded), text: "الجزاءات"),
+              Tab(icon: Icon(Icons.calendar_month), text:  Translate.text(context, "الحضور", "Attendance")),
+              Tab(icon: Icon(Icons.payments_outlined), text: Translate.text(context, "المرتبات", "Salaries")),
+              Tab(icon: Icon(Icons.gavel_rounded), text: Translate.text(context, "الجزاءات", "Penalties")),
             ],
           ),
         ),
@@ -48,7 +49,7 @@ class _EmployeeControlPanelState extends State<EmployeeControlPanel> {
   Widget _buildAttendanceView(bool isDark) {
     return Column(
       children: [
-        _buildSummaryHeader("أيام الحضور هذا الشهر", "22 يوم", Icons.timer, Colors.blue),
+        _buildSummaryHeader(Translate.text(context, "أيام الحضور هذا الشهر", "Attendance Days This Month"), "22 يوم", Icons.timer, Colors.blue),
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
@@ -65,7 +66,7 @@ class _EmployeeControlPanelState extends State<EmployeeControlPanel> {
                     child: ListTile(
                       leading: const Icon(Icons.login, color: Colors.green),
                       title: Text(log['date'] ?? ""),
-                      subtitle: Text("الحضور: ${log['checkIn']} | الانصراف: ${log['checkOut'] ?? '---'}"),
+                      subtitle: Text(Translate.text(context, "الحضور: ${log['checkIn']} | الانصراف: ${log['checkOut'] ?? '---'}", "Check-in: ${log['checkIn']} | Check-out: ${log['checkOut'] ?? '---'}")),
                     ),
                   );
                 },
@@ -82,7 +83,7 @@ class _EmployeeControlPanelState extends State<EmployeeControlPanel> {
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddActionDialog(),
-        label: const Text("إضافة جزاء/مكافأة"),
+        label: Text(Translate.text(context, "إضافة جزاء/مكافأة", "Add Penalty/Bonus")),
         icon: const Icon(Icons.add),
         backgroundColor: Colors.redAccent,
       ),
@@ -102,7 +103,7 @@ class _EmployeeControlPanelState extends State<EmployeeControlPanel> {
                            color: isBonus ? Colors.green : Colors.red),
                 title: Text(action['reason']),
                 subtitle: Text(DateFormat('yyyy-MM-dd').format(action['date'].toDate())),
-                trailing: Text("${isBonus ? '+' : '-'}${action['amount']} ج.م", 
+                trailing: Text(Translate.text(context, "${isBonus ? '+' : '-'}${action['amount']}  ج.م", "${isBonus ? '+' : '-'}${action['amount']} EGP"), 
                           style: TextStyle(fontWeight: FontWeight.bold, color: isBonus ? Colors.green : Colors.red)),
               );
             },
@@ -113,41 +114,74 @@ class _EmployeeControlPanelState extends State<EmployeeControlPanel> {
   }
 
   // --- 3. واجهة المرتب (Salary Logic) ---
-  Widget _buildSalaryView(bool isDark) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').doc(widget.docId).collection('actions').snapshots(),
-      builder: (context, actionSnap) {
-        double basicSalary = (widget.userData['basicSalary'] ?? 0).toDouble();
-        double totalActions = 0;
-        
-        if (actionSnap.hasData) {
-          for (var doc in actionSnap.data!.docs) {
-            double amt = (doc['amount'] ?? 0).toDouble();
-            totalActions += (doc['type'] == 'bonus' ? amt : -amt);
+ Widget _buildSalaryView(bool isDark) {
+  // استخدام Stream لمراقبة وثيقة المستخدم (عشان المرتب الأساسي يظهر فور تعديله)
+  return StreamBuilder<DocumentSnapshot>(
+    stream: FirebaseFirestore.instance.collection('users').doc(widget.docId).snapshots(),
+    builder: (context, userSnap) {
+      if (!userSnap.hasData) return const Center(child: CircularProgressIndicator());
+
+      // قراءة المرتب الأساسي من الـ Stream الحالي وليس من الـ widget القديم
+      var userData = userSnap.data!.data() as Map<String, dynamic>;
+      double basicSalary = (userData['basicSalary'] ?? 0).toDouble();
+
+      // Stream داخلي لجلب التعديلات (Bonus/Penalty)
+      return StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('users')
+            .doc(widget.docId)
+            .collection('actions')
+            .snapshots(),
+        builder: (context, actionSnap) {
+          double totalActions = 0;
+
+          if (actionSnap.hasData) {
+            for (var doc in actionSnap.data!.docs) {
+              double amt = (doc['amount'] ?? 0).toDouble();
+              totalActions += (doc['type'] == 'bonus' ? amt : -amt);
+            }
           }
-        }
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              _buildSalaryCard("المرتب الأساسي", basicSalary, Colors.grey),
-              _buildSalaryCard("صافي التعديلات (جزاءات/حوافز)", totalActions, totalActions >= 0 ? Colors.green : Colors.red),
-              const Divider(height: 40),
-              _buildSalaryCard("إجمالي المستحق صرفه", basicSalary + totalActions, Colors.blue, isMain: true),
-              const SizedBox(height: 30),
-              ElevatedButton.icon(
-                onPressed: () => _setBasicSalary(),
-                icon: const Icon(Icons.edit_note),
-                label: const Text("تعديل المرتب الأساسي"),
-              )
-            ],
-          ),
-        );
-      },
-    );
-  }
-
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                _buildSalaryCard(Translate.text(context, "المرتب الأساسي", "Basic Salary"), basicSalary, Colors.grey),
+                _buildSalaryCard(
+                  Translate.text(context, "صافي التعديلات (جزاءات/حوافز)", "Net Adjustments (Penalties/Bonuses)"),
+                  totalActions,
+                  totalActions >= 0 ? Colors.green : Colors.red,
+                ),
+                const Divider(height: 40),
+                _buildSalaryCard(
+                  Translate.text(context, "إجمالي المستحق صرفه", "Total Payable Amount"),
+                  basicSalary + totalActions,
+                  Colors.blue,
+                  isMain: true,
+                ),
+                const SizedBox(height: 30),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () async {
+                    // استدعاء الدالة وانتظار الانتهاء
+                    _setBasicSalary();
+                    // تحديث الحالة لضمان إعادة البناء (رغم أن الـ Stream سيتكفل بالأمر)
+                    setState(() {});
+                  },
+                  icon: const Icon(Icons.edit_note),
+                  label: Text(Translate.text(context, "تعديل المرتب الأساسي", "Edit Basic Salary")),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
+}
   // --- دوال مساعدة (Dialogs) ---
 
   void _showAddActionDialog() {
@@ -159,7 +193,7 @@ class _EmployeeControlPanelState extends State<EmployeeControlPanel> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text("إضافة إجراء مالي"),
+          title: Text(Translate.text(context, "إضافة إجراء مالي", "Add Financial Action")),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -167,17 +201,17 @@ class _EmployeeControlPanelState extends State<EmployeeControlPanel> {
                 value: type,
                 isExpanded: true,
                 onChanged: (v) => setDialogState(() => type = v!),
-                items: const [
-                  DropdownMenuItem(value: 'penalty', child: Text("جزاء (خصم)")),
-                  DropdownMenuItem(value: 'bonus', child: Text("مكافأة (إضافة)")),
+                items:  [
+                  DropdownMenuItem(value: 'penalty', child: Text(Translate.text(context, "جزاء (خصم)", "Penalty (Deduction)"))),
+                  DropdownMenuItem(value: 'bonus', child: Text(Translate.text(context, "مكافأة (إضافة)", "Bonus (Addition)"))),
                 ],
               ),
-              TextField(controller: amountCtrl, decoration: const InputDecoration(labelText: "المبلغ"), keyboardType: TextInputType.number),
-              TextField(controller: reasonCtrl, decoration: const InputDecoration(labelText: "السبب")),
+              TextField(controller: amountCtrl, decoration: InputDecoration(labelText: Translate.text(context, "المبلغ", "Amount")), keyboardType: TextInputType.number),
+              TextField(controller: reasonCtrl, decoration: InputDecoration(labelText: Translate.text(context, "السبب", "Reason"))),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("إلغاء")),
+            TextButton(onPressed: () => Navigator.pop(context), child: Text(Translate.text(context, "إلغاء", "Cancel"))),
             ElevatedButton(onPressed: () async {
               await FirebaseFirestore.instance.collection('users').doc(widget.docId).collection('actions').add({
                 'type': type,
@@ -186,7 +220,7 @@ class _EmployeeControlPanelState extends State<EmployeeControlPanel> {
                 'date': DateTime.now(),
               });
               Navigator.pop(context);
-            }, child: const Text("حفظ")),
+            }, child: Text(Translate.text(context, "حفظ", "Save"))),
           ],
         ),
       ),
@@ -198,7 +232,7 @@ class _EmployeeControlPanelState extends State<EmployeeControlPanel> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("تعديل المرتب الأساسي"),
+        title:  Text(Translate.text(context, "تعديل المرتب الأساسي", "Edit Basic Salary")),
         content: TextField(controller: c, keyboardType: TextInputType.number),
         actions: [
           ElevatedButton(onPressed: () async {
@@ -206,7 +240,7 @@ class _EmployeeControlPanelState extends State<EmployeeControlPanel> {
               'basicSalary': double.parse(c.text),
             });
             Navigator.pop(context);
-          }, child: const Text("تحديث")),
+          }, child: Text(Translate.text(context, "تحديث", "Update"))),
         ],
       ),
     );
@@ -225,7 +259,7 @@ class _EmployeeControlPanelState extends State<EmployeeControlPanel> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(title, style: TextStyle(color: isMain ? Colors.white : Colors.black, fontWeight: isMain ? FontWeight.bold : FontWeight.normal)),
-          Text("${value.toStringAsFixed(0)} ج.م", style: TextStyle(fontSize: isMain ? 22 : 16, fontWeight: FontWeight.bold, color: isMain ? Colors.white : color)),
+          Text(Translate.text(context, "${value.toStringAsFixed(0)} ج.م", "${value.toStringAsFixed(0)} EGP"), style: TextStyle(fontSize: isMain ? 22 : 16, fontWeight: FontWeight.bold, color: isMain ? Colors.white : color)),
         ],
       ),
     );

@@ -1,3 +1,4 @@
+import 'package:aiom/configer/settingPage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -42,7 +43,7 @@ class _SmartProductionOrderPageState extends State<SmartProductionOrderPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("طلب إنتاج جديد"),
+        title: Text(Translate.text(context, "طلب إنتاج جديد", "New Production Order")),
         centerTitle: true,
       ),
 // في صفحة AddProductionOrderPage (أو الصفحة التي أرسلت صورتها)
@@ -51,7 +52,7 @@ class _SmartProductionOrderPageState extends State<SmartProductionOrderPage> {
 body: StreamBuilder<QuerySnapshot>(
   stream: FirebaseFirestore.instance.collection('products').where('isDeleted', isNotEqualTo: true).snapshots(),
   builder: (context, snapshot) {
-    if (snapshot.hasError) return Center(child: Text("حدث خطأ: ${snapshot.error}"));
+    if (snapshot.hasError) return Center(child: Text(Translate.text(context, "حدث خطأ: ${snapshot.error}", "An error occurred: ${snapshot.error}")));
     if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
     var allProducts = snapshot.data!.docs;
@@ -61,14 +62,14 @@ body: StreamBuilder<QuerySnapshot>(
     for (var doc in allProducts) {
       var data = doc.data() as Map<String, dynamic>;
       // إذا لم يوجد تصنيف، نضع "عام"
-      categories.add(data['category'] ?? "عام");
+      categories.add(data['category'] ?? Translate.text(context, "عام", "General"));
     }
 
     // 2. تصفية المنتجات بناءً على الاختيار
     var filteredProducts = allProducts.where((doc) {
       var data = doc.data() as Map<String, dynamic>;
-      String cat = data['category'] ?? "عام";
-      String sub = data['subCategory'] ?? "عام";
+      String cat = data['category'] ?? Translate.text(context, "عام", "General");
+      String sub = data['subCategory'] ?? Translate.text(context, "عام", "General");
       
       bool catMatch = _selectedCategory == null || cat == _selectedCategory;
       bool subMatch = _selectedSubCategory == null || sub == _selectedSubCategory;
@@ -81,8 +82,8 @@ body: StreamBuilder<QuerySnapshot>(
     if (_selectedCategory != null) {
       for (var doc in allProducts) {
         var data = doc.data() as Map<String, dynamic>;
-        if ((data['category'] ?? "عام") == _selectedCategory) {
-          subCategories.add(data['subCategory'] ?? "عام");
+        if ((data['category'] ?? Translate.text(context, "عام", "General")) == _selectedCategory) {
+          subCategories.add(data['subCategory'] ?? Translate.text(context, "عام", "General"));
         }
       }
     }
@@ -95,27 +96,27 @@ body: StreamBuilder<QuerySnapshot>(
           children: [
             _buildThemedCard(
               context,
-              title: "بيانات المنتج",
+              title: Translate.text(context, "بيانات المنتج", "Product Details"),
               child: Column(
                 children: [
-                  _buildDropdown("القسم الرئيسي", _selectedCategory, categories.toList(), (val) {
+                  _buildDropdown(Translate.text(context, "القسم الرئيسي", "Main Category"), _selectedCategory, categories.toList(), (val) {
                     setState(() { _selectedCategory = val; _selectedSubCategory = null; _selectedProductId = null; });
                   }),
                   if (_selectedCategory != null)
-                    _buildDropdown("النوع الفرعي", _selectedSubCategory, subCategories.toList(), (val) {
+                    _buildDropdown(Translate.text(context, "النوع الفرعي", "Sub Category"), _selectedSubCategory, subCategories.toList(), (val) {
                       setState(() { _selectedSubCategory = val; _selectedProductId = null; });
                     }),
                   
                   // القائمة المنسدلة للمنتجات
                   DropdownButtonFormField<String>(
                     initialValue: _selectedProductId,
-                    decoration: _inputDecoration(context, "اختر المنتج"),
-                    hint: const Text("حدد المنتج"),
+                    decoration: _inputDecoration(context, Translate.text(context, "اختر المنتج", "Select Product")),
+                    hint: Text(Translate.text(context, "حدد المنتج", "Select Product")),
                     items: filteredProducts.map((doc) {
                       var data = doc.data() as Map<String, dynamic>;
                       return DropdownMenuItem(
                         value: doc.id,
-                        child: Text(data['productName'] ?? "بدون اسم"),
+                        child: Text(data['productName'] ?? Translate.text(context, "بدون اسم", "Unnamed Product")),
                       );
                     }).toList(),
                     onChanged: (val) {
@@ -136,13 +137,13 @@ body: StreamBuilder<QuerySnapshot>(
             // ... (باقي حقول الكمية والملاحظات كما هي عندك)
              _buildThemedCard(
                     context,
-                    title: "أمر التشغيل",
+                    title: Translate.text(context, "أمر التشغيل", "Production Order"),
                     child: Column(
                       children: [
                         TextFormField(
                           controller: _qtyController,
                           keyboardType: TextInputType.number,
-                          decoration: _inputDecoration(context, "الكمية المراد إنتاجها", icon: Icons.factory),
+                          decoration: _inputDecoration(context, Translate.text(context, "الكمية المراد إنتاجها", "Quantity to be Produced"), icon: Icons.factory),
                         ),
                          const SizedBox(height: 15),
                          // زر الحفظ هنا يستدعي دالة حفظ الطلب في production_orders
@@ -152,7 +153,7 @@ body: StreamBuilder<QuerySnapshot>(
              const SizedBox(height: 20),
              ElevatedButton(
                onPressed: _submitOrder, // دالة الحفظ العادية
-               child: const Text("إرسال للمصنع"),
+               child: Text(Translate.text(context, "إرسال للمصنع", "Send to Factory")),
              )
           ],
         ),
@@ -179,8 +180,8 @@ body: StreamBuilder<QuerySnapshot>(
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text("المخزن الحالي:", style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
-          Text("$_currentStock قطعة", style: TextStyle(
+          Text(Translate.text(context, "المخزن الحالي", "Current Stock"), style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
+          Text("${Translate.text(context, "$_currentStock قطعة", "$_currentStock Pieces")}", style: TextStyle(
             fontWeight: FontWeight.bold, 
             fontSize: 18, 
             color: isLow ? Colors.orange : Colors.green
@@ -261,7 +262,7 @@ body: StreamBuilder<QuerySnapshot>(
       });
       _qtyController.clear();
       _notesController.clear();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم الإرسال")));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(Translate.text(context, "تم الإرسال", "Submitted Successfully"))));
     } finally {
       setState(() => _isSubmitting = false);
     }

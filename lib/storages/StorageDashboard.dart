@@ -1,3 +1,4 @@
+import 'package:aiom/configer/settingPage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -29,7 +30,7 @@ class _StorageDashboardState extends State<StorageDashboard> with SingleTickerPr
             expandedHeight: 120, pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: true,
-              title: const Text("المستودع المركزي", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+              title: Text(Translate.text(context, "المستودع المركزي", "Central Warehouse"), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
               background: Container(decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF102A43), Color(0xFF244A5F)]))),
             ),
           ),
@@ -39,7 +40,7 @@ class _StorageDashboardState extends State<StorageDashboard> with SingleTickerPr
               child: TabBar(
                 controller: _tabController,
                 indicatorColor: Colors.amber,
-                tabs: const [Tab(text: "المنتجات", icon: Icon(Icons.inventory_2)), Tab(text: "الخامات", icon: Icon(Icons.construction))],
+                tabs:  [Tab(text: Translate.text(context, "المنتجات", "Products"), icon: Icon(Icons.inventory_2)), Tab(text: Translate.text(context, "الخامات", "Raw Materials"), icon: Icon(Icons.construction))],
               ),
             ),
           ),
@@ -50,14 +51,14 @@ class _StorageDashboardState extends State<StorageDashboard> with SingleTickerPr
               padding: const EdgeInsets.all(16),
               child: TextField(
                 onChanged: (val) => setState(() => _searchText = val.toLowerCase()),
-                decoration: InputDecoration(hintText: "بحث...", prefixIcon: const Icon(Icons.search), filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none)),
+                decoration: InputDecoration(hintText: Translate.text(context, "بحث...", "Search..."), prefixIcon: const Icon(Icons.search), filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none)),
               ),
             ),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance.collection('products').orderBy('category').snapshots(),
                 builder: (context, snapshot) {
-                  if (snapshot.hasError) return const Center(child: Text("حدث خطأ في عرض البيانات"));
+                  if (snapshot.hasError) return  Center(child: Text(Translate.text(context, "حدث خطأ في عرض البيانات", "An error occurred while displaying data")));
                   if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
                   String currentTabType = _tabController.index == 0 ? "product" : "material";
@@ -72,7 +73,7 @@ class _StorageDashboardState extends State<StorageDashboard> with SingleTickerPr
 
                   Map<String, List<DocumentSnapshot>> grouped = {};
                   for (var d in filteredDocs) {
-                    String cat = (d.data() as Map<String, dynamic>)['category'] ?? "عام";
+                    String cat = (d.data() as Map<String, dynamic>)['category'] ?? Translate.text(context, "عام", "General");
                     grouped.putIfAbsent(cat, () => []).add(d);
                   }
 
@@ -103,7 +104,7 @@ class _StorageDashboardState extends State<StorageDashboard> with SingleTickerPr
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: ListTile(
-        title: Text(data['productName'] ?? "صنف قديم"),
+        title: Text(data['productName'] ?? Translate.text(context, "صنف قديم", "Old Product")),
         subtitle: Text(data['subCategory'] ?? ""),
         trailing: const Icon(Icons.chevron_right),
       ),

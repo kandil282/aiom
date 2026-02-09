@@ -1,4 +1,5 @@
 import 'package:aiom/accountant/CustomerPrintStatementPage.dart';
+import 'package:aiom/configer/settingPage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -18,7 +19,7 @@ class _CustomerAccountsPageState extends State<CustomerAccountsPage> {
     if (balance <= 0) return;
     
     // تنسيق الرسالة
-    String message = "تحية طيبة، نود تذكيركم بأن إجمالي المديونية المستحقة لديكم هي: $balance ج.م. يرجى التكرم بالسداد في أقرب وقت. شكراً لتعاونكم.";
+    String message = Translate.text(context, "تحية طيبة، نود تذكيركم بأن إجمالي المديونية المستحقة لديكم هي: $balance ج.م. يرجى التكرم بالسداد في أقرب وقت. شكراً لتعاونكم.", "Greetings, we would like to remind you that your total outstanding debt is: $balance EGP. Please kindly settle it at your earliest convenience. Thank you for your cooperation.");
     
     // تجهيز الرابط (تأكد أن الرقم يبدأ بكود الدولة بدون + إذا لزم الأمر)
     var url = "https://wa.me/$phone?text=${Uri.encodeComponent(message)}";
@@ -26,7 +27,7 @@ class _CustomerAccountsPageState extends State<CustomerAccountsPage> {
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     } else {
-      debugPrint("لا يمكن فتح واتساب");
+      debugPrint(Translate.text(context, "لا يمكن فتح واتساب", "Cannot open WhatsApp"));
     }
   }
 
@@ -34,7 +35,7 @@ class _CustomerAccountsPageState extends State<CustomerAccountsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("حسابات العملاء والمديونيات"),
+        title:  Text(Translate.text(context, "حسابات العملاء والمديونيات", "Customer Accounts and Debts")),
         backgroundColor: const Color(0xff692960),
         foregroundColor: Colors.white,
       ),
@@ -49,7 +50,7 @@ class _CustomerAccountsPageState extends State<CustomerAccountsPage> {
             child: TextField(
               onChanged: (val) => setState(() => searchQuery = val),
               decoration: InputDecoration(
-                hintText: "بحث عن عميل...",
+                hintText: Translate.text(context, "بحث عن عميل...", "Search for a customer....."),
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
                 filled: true,
@@ -68,14 +69,14 @@ class _CustomerAccountsPageState extends State<CustomerAccountsPage> {
                 // تصفية العملاء بناءً على البحث
                 var docs = snap.data!.docs.where((d) => d['name'].toString().contains(searchQuery)).toList();
 
-                if (docs.isEmpty) return const Center(child: Text("لا يوجد عملاء بهذا الاسم"));
+                if (docs.isEmpty) return  Center(child: Text(Translate.text(context, "لا يوجد عملاء بهذا الاسم", "No customers found with this name")));
 
                 return ListView.builder(
                   itemCount: docs.length,
                   itemBuilder: (context, i) {
                     var data = docs[i].data() as Map<String, dynamic>;
                     String id = docs[i].id;
-                    String name = data['name'] ?? "بدون اسم";
+                    String name = data['name'] ?? Translate.text(context, "بدون اسم", "No Name");
                     String phone = data['phone'] ?? "";
                     double balance = (data['balance'] ?? 0).toDouble();
 
@@ -95,9 +96,9 @@ class _CustomerAccountsPageState extends State<CustomerAccountsPage> {
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("الهاتف: $phone"),
+                            Text(Translate.text(context, "الهاتف: $phone", "Phone: $phone")),
                             Text(
-                              "المديونية: $balance ج.م",
+                              Translate.text(context, "المديونية: $balance ج.م", "Debt: $balance EGP"),
                               style: TextStyle(
                                 color: balance > 0 ? Colors.red : Colors.green,
                                 fontWeight: FontWeight.bold
@@ -112,7 +113,7 @@ class _CustomerAccountsPageState extends State<CustomerAccountsPage> {
                             IconButton(
                               icon: const Icon(Icons.notifications_active, color: Colors.orange),
                               onPressed: () => _sendWhatsAppReminder(phone, balance),
-                              tooltip: "إرسال تنبيه مديونية",
+                              tooltip: Translate.text(context, "إرسال تنبيه مديونية", "Send Debt Reminder"),
                             ),
                             const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
                           ],
@@ -151,10 +152,10 @@ class _CustomerAccountsPageState extends State<CustomerAccountsPage> {
           ),
           child: Column(
             children: [
-              const Text("إجمالي مديونيات السوق المستحقة", style: TextStyle(color: Colors.white, fontSize: 16)),
+               Text(Translate.text(context, "إجمالي مديونيات السوق المستحقة", "Total Market Debts"), style: TextStyle(color: Colors.white, fontSize: 16)),
               const SizedBox(height: 5),
               Text(
-                "${total.toStringAsFixed(2)} ج.م",
+                Translate.text(context, "${total.toStringAsFixed(2)} ج.م", "${total.toStringAsFixed(2)} EGP"),
                 style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
               ),
             ],

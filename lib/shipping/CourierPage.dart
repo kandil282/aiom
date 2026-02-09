@@ -1,3 +1,4 @@
+import 'package:aiom/configer/settingPage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -57,7 +58,7 @@ location.onLocationChanged.listen((LocationData currentLocation) {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("مهامي اليومية 📦"),
+        title: Text(Translate.text(context, "مهامي اليومية 📦", "My Daily Tasks 📦")),
         backgroundColor: Colors.orange[800],
         actions: [
           Padding(
@@ -76,7 +77,7 @@ location.onLocationChanged.listen((LocationData currentLocation) {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text("لا توجد أوردرات بانتظارك"));
+            return  Center(child: Text(Translate.text(context, "لا توجد أوردرات بانتظارك", "No orders are waiting for you")));
           }
 
           return ListView.builder(
@@ -97,15 +98,15 @@ location.onLocationChanged.listen((LocationData currentLocation) {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(data['customerName'] ?? "بدون اسم", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          Text("${data['totalAmount']} ج.م", style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                          Text(data['customerName'] ?? Translate.text(context, "بدون اسم", "No Name"), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          Text(Translate.text(context, "${data['totalAmount']} ج.م", "${data['totalAmount']} EGP"), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
                         ],
                       ),
                       const SizedBox(height: 10),
-                      Text("📞 ${data['customerPhone'] ?? 'غير مسجل'}"),
+                      Text(Translate.text(context, "📞 ${data['customerPhone'] ?? 'غير مسجل'}", "📞 ${data['customerPhone'] ?? 'Not Registered'}")),
                       const Divider(),
                       // تفاصيل الأصناف والمخازن (كما طلبت في البداية)
-                      ...(data['items'] as List).map((item) => Text("• ${item['productName']} (الكمية: ${item['qty']})")),
+                      ...(data['items'] as List).map((item) => Text(Translate.text(context, "• ${item['productName']} (الكمية: ${item['qty']})", "• ${item['productName']} (Quantity: ${item['qty']})"))),
                       const SizedBox(height: 15),
                       ElevatedButton(
                         onPressed: () => _confirmDelivery(order.id),
@@ -114,7 +115,7 @@ location.onLocationChanged.listen((LocationData currentLocation) {
                           minimumSize: const Size(double.infinity, 45),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
                         ),
-                        child: const Text("تم التسليم للعميل ✅", style: TextStyle(color: Colors.white)),
+                        child: Text(Translate.text(context, "تم التسليم للعميل ✅", "Delivery Confirmed ✅"), style: const TextStyle(color: Colors.white)),
                       ),
                     ],
                   ),

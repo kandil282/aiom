@@ -1,4 +1,5 @@
 import 'package:aiom/accountant/SpecificWarehouseInventoryPage.dart';
+import 'package:aiom/configer/settingPage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -30,9 +31,9 @@ class _ManageWarehousesPageState extends State<ManageWarehousesPage> {
 
       _warehouseNameController.clear();
       _locationController.clear();
-      _showSnackBar("تم إنشاء المخزن بنجاح ✅", Colors.green);
+      _showSnackBar(Translate.text(context, "تم إنشاء المخزن بنجاح ✅", "Warehouse created successfully ✅"), Colors.green);
     } catch (e) {
-      _showSnackBar("حدث خطأ أثناء الإنشاء", Colors.red);
+      _showSnackBar(Translate.text(context, "حدث خطأ أثناء الإنشاء", "An error occurred while creating the warehouse"), Colors.red);
     } finally {
       setState(() => _isLoading = false);
     }
@@ -51,7 +52,7 @@ class _ManageWarehousesPageState extends State<ManageWarehousesPage> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text("إدارة مواقع التخزين", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        title: Text(Translate.text(context, "إدارة مواقع التخزين", "Manage Storage Locations"), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         backgroundColor: isDark ? theme.cardColor : const Color(0xFF102A43),
         foregroundColor: Colors.white,
         elevation: 0,
@@ -74,7 +75,7 @@ class _ManageWarehousesPageState extends State<ManageWarehousesPage> {
                 child: Column(
                   children: [
                     Text(
-                      "إنشاء مخزن جديد",
+                     Translate.text(context, "إنشاء مخزن جديد", "Create New Warehouse"),
                       style: TextStyle(
                         fontSize: 18, 
                         fontWeight: FontWeight.bold, 
@@ -86,7 +87,7 @@ class _ManageWarehousesPageState extends State<ManageWarehousesPage> {
                       controller: _warehouseNameController,
                       style: TextStyle(color: isDark ? Colors.white : Colors.black),
                       decoration: InputDecoration(
-                        labelText: "اسم المخزن",
+                        labelText: Translate.text(context, "اسم المخزن", "Warehouse Name"),
                         labelStyle: TextStyle(color: isDark ? Colors.white60 : Colors.indigo),
                         prefixIcon: Icon(Icons.storefront, color: isDark ? Colors.amber : Colors.indigo),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -101,7 +102,7 @@ class _ManageWarehousesPageState extends State<ManageWarehousesPage> {
                       controller: _locationController,
                       style: TextStyle(color: isDark ? Colors.white : Colors.black),
                       decoration: InputDecoration(
-                        labelText: "الموقع/العنوان (اختياري)",
+                        labelText: Translate.text(context, "الموقع/العنوان (اختياري)", "Location/Address (Optional)"),
                         labelStyle: TextStyle(color: isDark ? Colors.white60 : Colors.indigo),
                         prefixIcon: Icon(Icons.location_on_outlined, color: isDark ? Colors.amber : Colors.indigo),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -123,7 +124,7 @@ class _ManageWarehousesPageState extends State<ManageWarehousesPage> {
                         onPressed: _isLoading ? null : _createWarehouse,
                         child: _isLoading 
                           ? const CircularProgressIndicator(color: Colors.white) 
-                          : const Text("إضافة المخزن للقائمة", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                          :  Text(Translate.text(context, "إضافة المخزن للقائمة", "Add Warehouse to List"), style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
@@ -139,7 +140,7 @@ class _ManageWarehousesPageState extends State<ManageWarehousesPage> {
                 Icon(Icons.list_alt, color: isDark ? Colors.amber : const Color(0xFF102A43)),
                 const SizedBox(width: 10),
                 Text(
-                  "المخازن الحالية", 
+                 Translate.text(context, "المخازن الحالية", "Current Warehouses"), 
                   style: TextStyle(
                     fontSize: 18, 
                     fontWeight: FontWeight.bold, 
@@ -196,7 +197,7 @@ class _ManageWarehousesPageState extends State<ManageWarehousesPage> {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : Colors.black)
         ),
         subtitle: Text(
-          doc['location'] ?? "لا يوجد عنوان محدد", 
+          doc['location'] ?? Translate.text(context, "لا يوجد عنوان محدد", "No Address Specified"), 
           style: TextStyle(fontSize: 12, color: isDark ? Colors.white60 : Colors.grey[600])
         ),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),

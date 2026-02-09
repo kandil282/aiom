@@ -1,4 +1,5 @@
 import 'dart:io' show File;
+import 'package:aiom/configer/settingPage.dart';
 import 'package:flutter/foundation.dart'; // ضرورية للتعرف على kIsWeb
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -102,11 +103,11 @@ class _CompanySettingsPageState extends State<CompanySettingsPage> {
 
       setState(() => _logoUrl = finalLogoUrl);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم حفظ البيانات بنجاح ✅"), backgroundColor: Colors.green));
+        ScaffoldMessenger.of(context).showSnackBar( SnackBar(content: Text(Translate.text(context, "تم حفظ البيانات بنجاح ✅", "Data saved successfully ✅")), backgroundColor: Colors.green));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("خطأ أثناء الحفظ: $e"), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(Translate.text(context, "خطأ أثناء الحفظ: $e", "Error while saving: $e")), backgroundColor: Colors.red));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -116,7 +117,7 @@ class _CompanySettingsPageState extends State<CompanySettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("هوية الشركة"), backgroundColor: Colors.blueGrey[900], foregroundColor: Colors.white),
+      appBar: AppBar(title: Text(Translate.text(context, "هوية الشركة", "Company Identity")), backgroundColor: Colors.blueGrey[900], foregroundColor: Colors.white),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -137,19 +138,19 @@ class _CompanySettingsPageState extends State<CompanySettingsPage> {
               ),
             ),
             const SizedBox(height: 20),
-            _buildTextField(_nameController, "اسم الشركة", Icons.business),
-            _buildTextField(_addressController, "العنوان", Icons.location_on),
-            _buildTextField(_phoneController, "الهاتف", Icons.phone),
+            _buildTextField(_nameController, Translate.text(context, "اسم الشركة", "Company Name"), Icons.business),
+            _buildTextField(_addressController, Translate.text(context, "العنوان", "Address"), Icons.location_on),
+            _buildTextField(_phoneController, Translate.text(context, "الهاتف", "Phone"), Icons.phone),
             const Divider(),
-            _buildTextField(_taxController, "الرقم الضريبي", Icons.assignment),
-            _buildTextField(_commercialController, "السجل التجاري", Icons.store),
+            _buildTextField(_taxController, Translate.text(context, "الرقم الضريبي", "Tax Number"), Icons.assignment),
+            _buildTextField(_commercialController, Translate.text(context, "السجل التجاري", "Commercial Register"), Icons.store),
             const SizedBox(height: 20),
             _isSaving 
                 ? const CircularProgressIndicator() 
                 : ElevatedButton.icon(
                     onPressed: _saveSettings,
                     icon: const Icon(Icons.save),
-                    label: const Text("حفظ البيانات"),
+                    label: Text(Translate.text(context, "حفظ البيانات", "Save Data")),
                     style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
                   ),
           ],

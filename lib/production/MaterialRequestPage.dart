@@ -1,3 +1,4 @@
+import 'package:aiom/configer/settingPage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -18,9 +19,9 @@ class _MaterialRequestPageState extends State<MaterialRequestPage> {
   // جلب اسم الموظف الحالي
   Future<String> _getUserName() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return "موظف إنتاج";
+    if (user == null) return Translate.text(context, "موظف إنتاج", "Production Employee");
     var doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-    return doc.exists ? (doc.data()?['username'] ?? "موظف") : "موظف";
+    return doc.exists ? (doc.data()?['username'] ?? Translate.text(context, "موظف", "Employee")) : Translate.text(context, "موظف", "Employee");
   }
 
   // إضافة صنف للقائمة
@@ -32,7 +33,7 @@ class _MaterialRequestPageState extends State<MaterialRequestPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("إضافة خامة للطلب"),
+        title:  Text(Translate.text(context, "إضافة خامة للطلب", "Add Raw Material to Request")),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -43,13 +44,13 @@ class _MaterialRequestPageState extends State<MaterialRequestPage> {
                 if (!snap.hasData) return const LinearProgressIndicator();
                 return DropdownButtonFormField<String>(
                   isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: "اختر الخامة",
+                  decoration:  InputDecoration(
+                    labelText: Translate.text(context, "اختر الخامة", "Select Raw Material"),
                     border: OutlineInputBorder(),
                   ),
                   items: snap.data!.docs.map((doc) => DropdownMenuItem(
                     value: doc.id,
-                    child: Text("${doc['materialName']} (رصيد: ${doc['stock'] ?? 0})"),
+                    child: Text(Translate.text(context, "${doc['materialName']} (رصيد: ${doc['stock'] ?? 0})", "${doc['materialName']} (Stock: ${doc['stock'] ?? 0})")),
                   )).toList(),
                   onChanged: (val) {
                     matId = val;
@@ -61,17 +62,17 @@ class _MaterialRequestPageState extends State<MaterialRequestPage> {
             const SizedBox(height: 15),
             TextField(
               controller: qtyCtrl,
-              decoration: const InputDecoration(
-                labelText: "الكمية المطلوبة",
+              decoration:  InputDecoration(
+                labelText: Translate.text(context, "الكمية المطلوبة", "Required Quantity"),
                 border: OutlineInputBorder(),
-                suffixText: "وحدة"
+                suffixText: Translate.text(context, "وحدة", "Unit")
               ),
               keyboardType: TextInputType.number,
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("إلغاء")),
+          TextButton(onPressed: () => Navigator.pop(context), child:  Text(Translate.text(context, "إلغاء", "Cancel"))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
             onPressed: () {
@@ -86,7 +87,7 @@ class _MaterialRequestPageState extends State<MaterialRequestPage> {
                 Navigator.pop(context);
               }
             },
-            child: const Text("إضافة", style: TextStyle(color: Colors.white)),
+            child: Text(Translate.text(context, "إضافة", "Add"), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -96,11 +97,11 @@ class _MaterialRequestPageState extends State<MaterialRequestPage> {
   // إرسال الطلب للمخزن
   Future<void> _submitRequest() async {
     if (requestedItems.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("الرجاء إضافة خامات أولاً")));
+      ScaffoldMessenger.of(context).showSnackBar( SnackBar(content: Text(Translate.text(context, "الرجاء إضافة خامات أولاً", "Please add raw materials first"))));
       return;
     }
     if (selectedWarehouseId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("الرجاء اختيار المخزن الموجه له الطلب")));
+      ScaffoldMessenger.of(context).showSnackBar( SnackBar(content: Text(Translate.text(context, "الرجاء اختيار المخزن الموجه له الطلب", "Please select the warehouse to which the request is directed"))));
       return;
     }
 
@@ -116,12 +117,12 @@ class _MaterialRequestPageState extends State<MaterialRequestPage> {
         'requestedAt': FieldValue.serverTimestamp(),
         'warehouseId': selectedWarehouseId,
         'warehouseName': selectedWarehouseName,
-        'productionNote': 'تشغيل إنتاج',
+        'productionNote': Translate.text(context, "تشغيل إنتاج", "Production Run"),
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("تم إرسال الطلب للمخزن بنجاح ✅"), 
+        ScaffoldMessenger.of(context).showSnackBar( SnackBar(
+          content: Text(Translate.text(context, "تم إرسال الطلب للمخزن بنجاح ✅", "Material request sent to warehouse successfully ✅")), 
           backgroundColor: Colors.green
         ));
         setState(() {
@@ -131,7 +132,7 @@ class _MaterialRequestPageState extends State<MaterialRequestPage> {
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("خطأ: $e")));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(Translate.text(context, "خطأ: $e", "Error: $e"))));
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -141,7 +142,7 @@ class _MaterialRequestPageState extends State<MaterialRequestPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("طلب خامات إنتاج"),
+        title: Text(Translate.text(context, "طلب خامات إنتاج", "Material Request for Production")),
         centerTitle: true,
         backgroundColor: Colors.orange[800],
       ),
@@ -172,7 +173,7 @@ StreamBuilder<QuerySnapshot>(
 
     return DropdownButtonFormField<String>(
       isExpanded: true,
-      decoration: const InputDecoration(labelText: "اختر المخزن", border: OutlineInputBorder()),
+      decoration: InputDecoration(labelText: Translate.text(context, "اختر المخزن", "Select Warehouse"), border: OutlineInputBorder()),
       initialValue: selectedWarehouseId,
       items: locations.map((doc) {
         return DropdownMenuItem(
@@ -200,7 +201,7 @@ StreamBuilder<QuerySnapshot>(
             ElevatedButton.icon(
               onPressed: _addItem,
               icon: const Icon(Icons.add_circle_outline),
-              label: const Text("إضافة خامة للقائمة"),
+              label: Text(Translate.text(context, "إضافة خامة للقائمة", "Add Raw Material to List")),
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 50),
                 backgroundColor: Colors.orange[700],
@@ -212,7 +213,7 @@ StreamBuilder<QuerySnapshot>(
             // 3. قائمة الطلبات الحالية
             Expanded(
               child: requestedItems.isEmpty 
-              ? Center(child: Text("لم يتم إضافة خامات بعد", style: TextStyle(color: Colors.grey[400])))
+              ? Center(child: Text(Translate.text(context, "لم يتم إضافة خامات بعد", "No raw materials added yet"), style: TextStyle(color: Colors.grey[400])))
               : ListView.builder(
                   itemCount: requestedItems.length,
                   itemBuilder: (ctx, i) => Card(
@@ -227,7 +228,7 @@ StreamBuilder<QuerySnapshot>(
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text("الكمية: ${requestedItems[i]['qty']}", style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                          Text(Translate.text(context, "الكمية: ${requestedItems[i]['qty']}", "Quantity: ${requestedItems[i]['qty']}"), style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
                           IconButton(
                             icon: const Icon(Icons.delete, color: Colors.red),
                             onPressed: () => setState(() => requestedItems.removeAt(i)),
@@ -251,7 +252,7 @@ StreamBuilder<QuerySnapshot>(
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                     child: isLoading 
                       ? const CircularProgressIndicator(color: Colors.white) 
-                      : const Text("إرسال الطلب للمخازن", style: TextStyle(fontSize: 18, color: Colors.white)),
+                      : Text(Translate.text(context, "إرسال الطلب للمخازن", "Send Request to Warehouses"), style: const TextStyle(fontSize: 18, color: Colors.white)),
                   ),
                 ),
               )

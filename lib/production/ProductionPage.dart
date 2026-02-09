@@ -1,3 +1,4 @@
+import 'package:aiom/configer/settingPage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -18,7 +19,7 @@ class _ProductionDashboardState extends State<ProductionDashboard> {
 Future<void> _finalizeProduction(String docId, Map<String, dynamic> data, num finalQty, String whId, String whName) async {
   String pId = data['productId']; 
   // حماية ضد البيانات الناقصة
-  if (pId.isEmpty) { _showError("خطأ: معرف المنتج مفقود"); return; }
+  if (pId.isEmpty) { _showError(Translate.text(context, "خطأ: معرف المنتج مفقود", "Error: Product ID is missing")); return; }
 
   try {
     WriteBatch batch = FirebaseFirestore.instance.batch();
@@ -49,9 +50,9 @@ Future<void> _finalizeProduction(String docId, Map<String, dynamic> data, num fi
     });
 
     await batch.commit();
-    _showSuccess("تم التوريد وتحديث جميع الأرصدة بنجاح ✅");
+    _showSuccess(Translate.text(context, "تم التوريد وتحديث جميع الأرصدة بنجاح ✅", "Production completed and all balances updated successfully ✅"));
   } catch (e) {
-    _showError("حدث خطأ أثناء التوريد: $e");
+    _showError(Translate.text(context, "حدث خطأ أثناء التوريد: $e", "An error occurred during production: $e"));
   }
 }
  
@@ -74,25 +75,6 @@ Future<void> _finalizeProduction(String docId, Map<String, dynamic> data, num fi
   );
 }
  
-//  Future<void> _notifyAgent(Map<String, dynamic> data, String docId) async {
-//   try {
-//     // في كوليكشن الإنتاج، الحقول تسمى agentId و productName
-//     String? agentId = data['agentId'];
-//     String pName = data['productName'] ?? 'منتج';
-    
-//     if (agentId != null && agentId.isNotEmpty) {
-//       await sendInternalNotification(
-//         receiverId: agentId,
-//         title: 'تحديث إنتاج وفاتورة 🧾',
-//         body: 'تم تجهيز $pName وإصدار الفاتورة الخاصة بها بنجاح.',
-//         // يمكنك إضافة orderId إذا كنت قمت بتخزينه في طلب الإنتاج
-//       );
-//       print("تم إرسال الإشعار للمندوب");
-//     }
-//   } catch (e) {
-//     print("خطأ في الإشعار: $e");
-//   }
-// }
 
 void _showError(String message) {
   if (!mounted) return;
@@ -107,20 +89,20 @@ void _showError(String message) {
   void _showCompleteDialog(String docId, Map<String, dynamic> data) {
     TextEditingController qtyController = TextEditingController(text: (data['quantity'] ?? 0).toString());
     String? selectedWhId = data['warehouseId'];
-    String selectedWhName = data['warehouseName'] ?? "المخزن الرئيسي";
+    String selectedWhName = data['warehouseName'] ?? Translate.text(context, "المخزن الرئيسي", "Main Warehouse");
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text("تأكيد توريد: ${data['productName'] ?? 'منتج'}"),
+          title: Text(Translate.text(context, "تأكيد توريد: ${data['productName'] ?? 'منتج'}", "Confirm Production: ${data['productName'] ?? 'Product'}")),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: qtyController,
-                decoration: const InputDecoration(labelText: "الكمية الفعلية المنتجة", prefixIcon: Icon(Icons.numbers)),
+                decoration:  InputDecoration(labelText: Translate.text(context, "الكمية الفعلية المنتجة", "Actual Produced Quantity"), prefixIcon: Icon(Icons.numbers)),
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 15),
@@ -130,7 +112,7 @@ void _showError(String message) {
                   if (!snap.hasData) return const LinearProgressIndicator();
                   return DropdownButtonFormField<String>(
                     initialValue: selectedWhId,
-                    decoration: const InputDecoration(labelText: "إيداع في مخزن...", prefixIcon: Icon(Icons.warehouse)),
+                    decoration: InputDecoration(labelText: Translate.text(context, "إيداع في مخزن...", "Deposit in Warehouse"), prefixIcon: Icon(Icons.warehouse)),
                     items: snap.data!.docs.map((doc) => DropdownMenuItem(value: doc.id, child: Text(doc['name']))).toList(),
                     onChanged: (val) {
                       setDialogState(() {
@@ -153,7 +135,7 @@ void _showError(String message) {
                   Navigator.pop(context);
                 }
               },
-              child: const Text("تأكيد وتوريد"),
+              child: Text(Translate.text(context, "تأكيد وتوريد", "Confirm and Produce")),
             ),
           ],
         ),
@@ -166,7 +148,7 @@ void _showError(String message) {
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
       appBar: AppBar(
-        title: const Text("مراقبة خط الإنتاج", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(Translate.text(context, "مراقبة خط الإنتاج", "Production Line Monitoring"), style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xFF334155),
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -175,7 +157,7 @@ void _showError(String message) {
             .where('status', isEqualTo: 'pending')
             .snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.hasError) return const Center(child: Text("خطأ في تحميل البيانات"));
+          if (snapshot.hasError) return  Center(child: Text(Translate.text(context, "خطأ في تحميل البيانات", "Error loading data")));
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
           // الترتيب اليدوي لتجنب خطأ الـ Index
@@ -186,7 +168,7 @@ void _showError(String message) {
             return (bT ?? Timestamp.now()).compareTo(aT ?? Timestamp.now());
           });
 
-          if (docs.isEmpty) return const Center(child: Text("لا توجد طلبات تصنيع حالية"));
+          if (docs.isEmpty) return  Center(child: Text(Translate.text(context, "لا توجد طلبات تصنيع حالية", "No pending production orders")));
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -200,7 +182,7 @@ return Card(
   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
   child: ListTile(
     contentPadding: const EdgeInsets.all(15),
-    title: Text(data['productName'] ?? "منتج غير معروف", 
+    title: Text(Translate.text(context, data['productName'] ?? "منتج غير معروف", "Unknown Product"), 
         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
     subtitle: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -212,25 +194,25 @@ return Card(
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(color: Colors.blue[100], borderRadius: BorderRadius.circular(5)),
-              child: Text(data['category'] ?? "تصنيف عام", style: const TextStyle(fontSize: 12)),
+              child: Text(Translate.text(context, data['category'] ?? "تصنيف عام", "General Category"), style: const TextStyle(fontSize: 12)),
             ),
             const SizedBox(width: 5),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(5)),
-              child: Text(data['subCategory'] ?? "فرعي", style: const TextStyle(fontSize: 12)),
+              child: Text(Translate.text(context, data['subCategory'] ?? "فرعي", "Sub Category"), style: const TextStyle(fontSize: 12)),
             ),
           ],
         ),
         const SizedBox(height: 10),
-        Text("الكمية المطلوبة: ${data['quantity'] ?? 0}", 
+        Text(Translate.text(context, "الكمية المطلوبة: ${data['quantity'] ?? 0}", "Required Quantity: ${data['quantity'] ?? 0}"), 
             style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
       ],
     ),
     trailing: ElevatedButton(
       style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700]),
       onPressed: () => _showCompleteDialog(docs[index].id, data),
-      child: const Text("تم التنفيذ", style: TextStyle(color: Colors.white)),
+      child: Text(Translate.text(context, "تم التنفيذ", "Completed"), style: const TextStyle(color: Colors.white)),
     ),
   ),
 );

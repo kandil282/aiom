@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsProvider extends ChangeNotifier {
   bool _isDarkMode = false;
-  Locale _locale = const Locale('ar'); // اللغة الافتراضية عربي
+  Locale _locale = const Locale('ar');
 
   bool get isDarkMode => _isDarkMode;
   Locale get locale => _locale;
@@ -29,7 +29,7 @@ class SettingsProvider extends ChangeNotifier {
     prefs.setString('languageCode', languageCode);
   }
 
-  // تحميل الإعدادات المحفوظة
+  // تحميل الإعدادات عند فتح التطبيق
   void _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     _isDarkMode = prefs.getBool('isDarkMode') ?? false;
@@ -37,46 +37,16 @@ class SettingsProvider extends ChangeNotifier {
     _locale = Locale(lang);
     notifyListeners();
   }
+
+  // تحديث بيانات المستخدم في فيرستور (الدالة مكانها هنا)
   Future<void> updateUserData(String uid, String newName) async {
     try {
       await FirebaseFirestore.instance.collection('users').doc(uid).update({
         'username': newName,
       });
-      notifyListeners(); // هذا السطر هو ما يجعل الاسم يتحدث في الهوم فوراً
+      notifyListeners(); // هنا الجرس بيشتغل صح
     } catch (e) {
-      print("Error: $e");
+      debugPrint("Error updating user: $e");
     }
-  }
-
-
-
-}
-
-
-class AppStrings {
-  static Map<String, Map<String, String>> translations = {
-    'ar': {
-      'app_title': 'نظام إدارة المؤسسة',
-      'hr_section': 'الإدارة والـ HR',
-      'hr_manage': 'إدارة الموظفين',
-      'sales_section': 'المبيعات والعملاء',
-      'shipping_section': 'الشحن والنقل',
-      'is_courier': 'مندوب التوصيل',
-      'logout': 'تسجيل الخروج',
-      // أضف كل النصوص هنا...
-    },
-    'en': {
-      'app_title': 'Enterprise ERP System',
-      'hr_section': 'Management & HR',
-      'hr_manage': 'Employee Management',
-      'sales_section': 'Sales & Customers',
-      'shipping_section': 'Shipping & Logistics',
-      'is_courier': 'Courier Dashboard',
-      'logout': 'Logout',
-    }
-  };
-
-  static String get(String key, String lang) {
-    return translations[lang]?[key] ?? key;
   }
 }

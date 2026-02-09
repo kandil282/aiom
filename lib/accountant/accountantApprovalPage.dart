@@ -1,3 +1,4 @@
+import 'package:aiom/configer/settingPage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -11,103 +12,123 @@ class AccountantApprovalPage extends StatefulWidget {
 class _AccountantApprovalPageState extends State<AccountantApprovalPage> {
   bool _isProcessing = false;
 
-  @override
-  Widget build(BuildContext context) {
-    // تعريف متغيرات الثيم للوصول السريع
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+@override
+Widget build(BuildContext context) {
+  final theme = Theme.of(context);
+  final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      // لون الخلفية يستجيب للثيم
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text("اعتماد مبيعات المناديب"),
-        // إذا كان دارك مود نستخدم لون الكارت، وإذا لا نستخدم اللون البنفسجي
-        backgroundColor: isDark ? theme.cardColor : const Color(0xff692960),
-        centerTitle: true,
-        elevation: 0,
-        actions: [
-          _buildProductionBadge(isDark),
-          const SizedBox(width: 15),
-        ],
-      ),
-      body: Column(
-        children: [
-          // ملخص سريع مستجيب للثيم
-          _buildHeaderSummary(theme),
-          
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('agent_orders')
-                  .where('status', isEqualTo: 'pending')
-                  .snapshots(),
-              builder: (context, snap) {
-                if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-                if (snap.data!.docs.isEmpty) {
-                  return Center(
-                    child: Text("لا توجد طلبات مبيعات بانتظار الاعتماد", 
-                      style: TextStyle(color: theme.hintColor)),
-                  );
-                }
+  return Scaffold(
+    backgroundColor: theme.scaffoldBackgroundColor,
+    appBar: AppBar(
+      title: Text(Translate.text(context, "اعتماد مبيعات المناديب", "Approve Agent Sales")),
+      backgroundColor: isDark ? theme.cardColor : const Color(0xff692960),
+      centerTitle: true,
+      elevation: 0,
+    ),
+    body: Column(
+      children: [
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('agent_orders')
+                .where('status', isEqualTo: 'pending')
+                .snapshots(),
+            builder: (context, snap) {
+              if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+              if (snap.data!.docs.isEmpty) {
+                return Center(child: Text(Translate.text(context, "لا توجد طلبات معلقة", "No pending orders"), style: TextStyle(color: theme.hintColor)));
+              }
 
-                return ListView.builder(
-                  itemCount: snap.data!.docs.length,
-                  itemBuilder: (context, i) {
-                    var orderDoc = snap.data!.docs[i];
-                    var orderData = orderDoc.data() as Map<String, dynamic>;
-                    List items = orderData['items'] ?? [];
+              return ListView.builder(
+                itemCount: snap.data!.docs.length,
+                itemBuilder: (context, i) {
+                  var orderDoc = snap.data!.docs[i];
+                  var orderData = orderDoc.data() as Map<String, dynamic>;
+                  List items = orderData['items'] ?? [];
+                  String customerId = orderData['customerId'] ?? '';
 
-                    return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                      // في الدارك مود نلغي الظل ونعتمد على تباين لون الكارت
-                      elevation: isDark ? 0 : 2,
-                      child: ExpansionTile(
-                        iconColor: theme.primaryColor,
-                        collapsedIconColor: theme.hintColor,
-                        leading: CircleAvatar(
-                          backgroundColor: isDark ? theme.primaryColor.withOpacity(0.2) : const Color(0xff692960),
-                          child: Icon(Icons.person, color: isDark ? theme.primaryColor : Colors.white)
-                        ),
-                        title: Text("المندوب: ${orderData['agentName'] ?? 'بدون اسم'}",
-                          style: TextStyle(fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color)),
-                        subtitle: Text("إجمالي الفاتورة: ${orderData['totalAmount']} ج.م",
-                          style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.w500)),
-                        children: [
-                          const Divider(),
-                          ...items.map((item) => ListTile(
-                            title: Text(item['productName'], style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
-                            trailing: Text("الكمية: ${item['qty']}", style: TextStyle(color: theme.hintColor)),
-                          )),
-                          Padding(
-                            padding: const EdgeInsets.all(15.0),
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green[700],
-                                foregroundColor: Colors.white,
-                                minimumSize: const Size(double.infinity, 50),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  return Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    color: theme.cardColor,
+                    child: (customerId.isEmpty) 
+                      ?  ListTile(title: Text(Translate.text(context, "بيانات العميل ناقصة (ID فارغ)", "Missing Customer Data (Empty ID)")))
+                      : FutureBuilder<DocumentSnapshot>(
+                          future: FirebaseFirestore.instance.collection('customers').doc(customerId).get(),
+                          builder: (context, custSnap) {
+                            // 1. استخراج البيانات من وثيقة العميل
+                            String customerName = Translate.text(context, "تحميل...", "Loading...");
+                            String agentName = Translate.text(context, "إدارة المكتب", "Office Management");
+
+                            if (custSnap.hasData && custSnap.data!.exists) {
+                              var custData = custSnap.data!.data() as Map<String, dynamic>;
+                              customerName = custData['name'] ?? Translate.text(context, "عميل بدون اسم", "Unnamed Customer");
+                              agentName = custData['addedByAgent'] ?? Translate.text(context, "إدارة المكتب", "Office Management");
+                            }
+
+                            return ExpansionTile(
+                              tilePadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                              leading: CircleAvatar(
+                                backgroundColor: theme.primaryColor.withOpacity(0.1),
+                                child: Icon(Icons.person, color: theme.primaryColor),
                               ),
-                              onPressed: _isProcessing ? null : () => _approveOrder(orderDoc.id, orderData),
-                              icon: const Icon(Icons.check_circle),
-                              label: const Text("اعتماد وتعديل الكميات", style: TextStyle(fontWeight: FontWeight.bold)),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
+                              // عرض اسم العميل
+                              title: Text(
+                                "العميل: $customerName",
+                                style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
+                              ),
+                              // عرض اسم المندوب من حقل addedByAgent
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(Translate.text(context, "المندوب: $agentName", "Agent: $agentName"), style: TextStyle(color: isDark ? Colors.white70 : Colors.black54)),
+                                  Text(Translate.text(context, "إجمالي: ${orderData['totalAmount']} ج.م", "Total: ${orderData['totalAmount']} EGP"), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[50],
+                                  child: Column(
+                                    children: [
+                                      ...items.map((item) => ListTile(
+                                        title: Text(Translate.text(context, item['productName'] ?? "منتج", "Unnamed Product"), style: const TextStyle(fontWeight: FontWeight.bold)),
+                                        subtitle: Text("${item['category'] ?? Translate.text(context, "عام", "General")} / ${item['subCategory'] ?? Translate.text(context, "عام", "General")}"),
+                                        trailing: Text(Translate.text(context, "الكمية: ${item['qty']}", "Quantity: ${item['qty']}"), style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.bold)),
+                                      )).toList(),
+                                      const SizedBox(height: 10),
+                                      ElevatedButton.icon(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.green[700],
+                                          foregroundColor: Colors.white,
+                                          minimumSize: const Size(double.infinity, 50),
+                                        ),
+                                        onPressed: _isProcessing ? null : () => _approveOrder(orderDoc.id, orderData),
+                                        icon: const Icon(Icons.check_circle_outline),
+                                        label: Text(Translate.text(context, "اعتماد الفاتورة الآن", "Approve Invoice Now")),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                  );
+                },
+              );
+            },
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProductionBadge(bool isDark) {
+        ),
+      ],
+    ),
+  );
+}
+ 
+ 
+ 
+ 
+ Widget _buildProductionBadge(bool isDark) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('production_orders')
@@ -145,11 +166,11 @@ class _AccountantApprovalPageState extends State<AccountantApprovalPage> {
                 decoration: BoxDecoration(color: theme.dividerColor, borderRadius: BorderRadius.circular(10)),
               ),
               const SizedBox(height: 15),
-              Text("طلبات الإنتاج القائمة", 
+              Text(Translate.text(context, "طلبات الإنتاج القائمة", "Pending Production Orders"), 
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.primaryColor)),
               const Divider(),
               if (docs.isEmpty) 
-                const Padding(padding: EdgeInsets.all(20.0), child: Text("لا توجد طلبات تصنيع")),
+                 Padding(padding: EdgeInsets.all(20.0), child: Text(Translate.text(context, "لا توجد طلبات تصنيع", "No Production Orders"))),
               Flexible(
                 child: ListView.builder(
                   shrinkWrap: true,
@@ -158,8 +179,8 @@ class _AccountantApprovalPageState extends State<AccountantApprovalPage> {
                     var data = docs[index].data() as Map<String, dynamic>;
                     return ListTile(
                       leading: const Icon(Icons.build_circle, color: Colors.orange),
-                      title: Text(data['productName'] ?? "منتج", style: TextStyle(color: theme.textTheme.bodyLarge?.color)),
-                      subtitle: Text("الكمية: ${data['quantity']}", style: TextStyle(color: theme.hintColor)),
+                      title: Text(Translate.text(context, data['productName'] ?? "منتج", "Unnamed Product"), style: TextStyle(color: theme.textTheme.bodyLarge?.color)),
+                      subtitle: Text(Translate.text(context, "الكمية: ${data['quantity']}", "Quantity: ${data['quantity']}"), style: TextStyle(color: theme.hintColor)),
                     );
                   },
                 ),
@@ -171,25 +192,6 @@ class _AccountantApprovalPageState extends State<AccountantApprovalPage> {
     );
   }
 
-  Widget _buildHeaderSummary(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      width: double.infinity,
-      color: theme.cardColor.withOpacity(0.5),
-      child: Row(
-        children: [
-          Icon(Icons.info_outline, color: theme.primaryColor),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              "عند الاعتماد: سيتم صرف المتاح فقط وتعديل الفاتورة آلياً بناءً على مخزونك الحالي.",
-              style: TextStyle(fontSize: 12, color: theme.hintColor),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   // --- بقية الدوال (approveOrder, Success, Error) تبقى كما هي مع التأكد من استخدام context.mounted ---
   // (تم اختصارها هنا لضمان التركيز على الـ UI)
@@ -205,6 +207,8 @@ class _AccountantApprovalPageState extends State<AccountantApprovalPage> {
       SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
+
+
 Future<void> _approveOrder(String orderId, Map<String, dynamic> data) async {
   if (_isProcessing) return;
   setState(() => _isProcessing = true);
@@ -215,13 +219,16 @@ Future<void> _approveOrder(String orderId, Map<String, dynamic> data) async {
 
   try {
     String customerId = data['customerId'];
-    String agentName = data['agentName'] ?? 'غير معروف';
-    String agentId = data['agentId'] ?? 'unknown_agent'; // التأكد من وجود ID المندوب
     
-    // جلب بيانات العميل
+    // 1. 🔥 جلب بيانات العميل (عشان نجيب المندوب المربوط بيه زي دالة الـ Invoice)
     DocumentSnapshot custDoc = await FirebaseFirestore.instance.collection('customers').doc(customerId).get();
-    String customerName = custDoc.exists ? (custDoc.get('name') ?? 'عميل') : 'عميل';
-    String customerPhone = custDoc.exists ? (custDoc.get('phone') ?? '') : '';
+    Map<String, dynamic> custData = custDoc.data() as Map<String, dynamic>;
+    
+    String customerName = custData['name'] ?? Translate.text(context, "عميل غير معروف", "Unknown Customer");
+    
+    // سحب بيانات المندوب من ملف العميل لضمان ظهورها
+    String agentId = custData['agentId'] ?? (data['agentId'] ?? 'unknown_agent');
+    String agentName = custData['addedByAgent'] ?? (data['agentName'] ?? Translate.text(context, "إدارة المكتب", "Office Management"));
 
     List items = data['items'] ?? [];
     
@@ -231,10 +238,9 @@ Future<void> _approveOrder(String orderId, Map<String, dynamic> data) async {
       int requestedQty = (item['qty'] ?? 0).toInt();
       double price = (item['price'] ?? 0.0).toDouble();
 
-      // جلب بيانات المنتج لضمان الفئات (Categories) للتقارير
       var productDoc = await FirebaseFirestore.instance.collection('products').doc(pId).get();
-      String category = productDoc.exists ? (productDoc.get('category') ?? 'عام') : 'عام';
-      String subCategory = productDoc.exists ? (productDoc.get('subCategory') ?? 'عام') : 'عام';
+      String category = productDoc.exists ? (productDoc.get('category') ?? Translate.text(context, "عام", "General")) : Translate.text(context, "عام", "General");
+      String subCategory = productDoc.exists ? (productDoc.get('subCategory') ?? Translate.text(context, "عام", "General")) : Translate.text(context, "عام", "General");
 
       // منطق خصم المخزن
       var invSnapshot = await FirebaseFirestore.instance
@@ -271,70 +277,64 @@ Future<void> _approveOrder(String orderId, Map<String, dynamic> data) async {
       }
     }
 
-    if (finalInvoiceItems.isEmpty) throw "لا يوجد مخزون كافٍ لإتمام العملية";
+    if (finalInvoiceItems.isEmpty) throw Translate.text(context, "لا يوجد مخزون كافٍ", "Insufficient inventory");
 
-    // 1. إضافة الفاتورة للشحن
+    // 2. تسجيل الفاتورة
     DocumentReference invDocRef = FirebaseFirestore.instance.collection('invoices').doc();
     batch.set(invDocRef, {
+      'invoiceId': invDocRef.id,
       'customerId': customerId,
       'customerName': customerName,
       'items': finalInvoiceItems,
       'totalAmount': totalInvoicedAmount,
       'date': FieldValue.serverTimestamp(),
       'shippingStatus': 'ready',
-      'source': 'agent_order',
       'agentId': agentId,
+      'agentName': agentName, // ✅ هيتسجل هنا
     });
 
-    // 2. الكوليكشن الجديد الموحد (المصدر الأساسي للتقارير)
+    // 3. التسجيل في الكوليكشن الموحد (التقارير)
     DocumentReference globalTransDoc = FirebaseFirestore.instance.collection('global_transactions').doc();
     batch.set(globalTransDoc, {
       'transactionId': globalTransDoc.id,
       'type': 'invoice',
-      'source': 'agent',          // لتوضيح أنها مبيعات مناديب
+      'source': 'agent',
       'amount': totalInvoicedAmount,
       'date': FieldValue.serverTimestamp(),
       'customerId': customerId,
       'customerName': customerName,
-      'agentId': agentId,         // مهم جداً لتقرير مدير المبيعات
-      'agentName': agentName,
+      'agentId': agentId,
+      'agentName': agentName, // ✅ هيتسجل هنا وهينطق في الكارت
       'items': finalInvoiceItems, 
       'invoiceRef': invDocRef.id,
-      'orderRef': orderId,
     });
 
-    // 3. تحديث مديونية العميل وسجل معاملاته المحلي
+    // 4. تحديث رصيد العميل وسجل معاملاته
     batch.update(FirebaseFirestore.instance.collection('customers').doc(customerId), {
       'balance': FieldValue.increment(totalInvoicedAmount)
     });
-    
+
     DocumentReference localTransRef = FirebaseFirestore.instance
-        .collection('customers').doc(customerId)
-        .collection('transactions').doc();
+        .collection('customers').doc(customerId).collection('transactions').doc();
     batch.set(localTransRef, {
       'type': 'invoice',
       'amount': totalInvoicedAmount,
       'date': FieldValue.serverTimestamp(),
       'agentName': agentName,
+      'agentId': agentId,
       'items': finalInvoiceItems,
     });
 
-    // 4. تحديث طلب المندوب الأصلي
-    batch.update(FirebaseFirestore.instance.collection('agent_orders').doc(orderId), {
-      'status': 'approved', 
-      'finalAmount': totalInvoicedAmount,
-      'processedAt': FieldValue.serverTimestamp(),
-    });
+    // 5. تحديث حالة الطلب
+    batch.update(FirebaseFirestore.instance.collection('agent_orders').doc(orderId), {'status': 'approved'});
 
     await batch.commit();
-    if (mounted) _showSuccess("تم الاعتماد وتحديث التقارير المركزية ✅");
+    if (mounted) _showSuccess(Translate.text(context, "تم الاعتماد بنجاح ✅", "Successfully Approved ✅"));
 
   } catch (e) {
-    if (mounted) _showError("خطأ: $e");
+    if (mounted) _showError(Translate.text(context, "خطأ: $e", "Error: $e"));
   } finally {
     if (mounted) setState(() => _isProcessing = false);
   }
 }
-
-
 }

@@ -1,6 +1,7 @@
 
 import 'dart:async';
 import 'dart:ui' as ui;
+import 'package:aiom/translate/translationhelper.dart';
 import 'package:async/async.dart'; // تأكد من إضافة async: ^2.11.0 في pubspec.yaml
 import 'package:intl/intl.dart';
 import 'dart:io';
@@ -117,7 +118,7 @@ Widget _styleStatsCard(String title, double total, Color accentColor) {
         Text(title, style: TextStyle(color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7))),
         const SizedBox(height: 8),
         Text(
-          "${NumberFormat('#,###.##').format(total)} ج.م",
+          Translate.text(context, "${NumberFormat('#,###.##').format(total)} ج.م", "${NumberFormat('#,###.##').format(total)} EGP"),
           style: TextStyle(
             color: theme.textTheme.bodyLarge?.color, // لون النص الأساسي للثيم
             fontSize: 24, 
@@ -211,7 +212,7 @@ Widget build(BuildContext context) {
     backgroundColor: scaffoldBg,
     appBar: AppBar(
       title: Text(
-        "لوحة تحكم ${widget.agentName}",
+        Translate.text(context, "لوحة تحكم ${widget.agentName}", "Dashboard ${widget.agentName}"),
         style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
       ),
       backgroundColor: cardColor,
@@ -233,31 +234,31 @@ Widget build(BuildContext context) {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("الإحصائيات المباشرة", 
-              style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500)),
+          Text(Translate.text(context, "الإحصائيات المباشرة", "live stats"), 
+              style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500)),
           const SizedBox(height: 12),
           
           // الكروت (التي برمجناها سابقاً) ستظهر هنا بشكل رائع
           _buildCombinedStatsCardSimple(
-            title: "العهدة المعلقة",
+            title: Translate.text(context, "العهدة المعلقة", "pending collections"),
             collection: "pending_collections",
             status: "pending",
             color: Colors.orangeAccent,
           ),
 
           _buildCombinedStatsCard(
-            title: "إجمالي التحصيلات (كاش + شيكات)",
+            title: Translate.text(context, "إجمالي التحصيلات (كاش + شيكات)", "total collections (cash + checks)"),
             color: Colors.greenAccent,
           ),
 
           _buildSubCollectionStatsCard(
-            title: "مبيعاتك الإجمالية", 
+            title: Translate.text(context, "مبيعاتك الإجمالية", "your total sales"), 
             color: Colors.blueAccent,
           ),
 
           const SizedBox(height: 25),
-          const Text("الوصول السريع", 
-              style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500)),
+          Text(Translate.text(context, "الوصول السريع", "quick access"), 
+              style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500)),
           const SizedBox(height: 12),
 
           // شبكة الأزرار بتصميم الدارك الموحد
@@ -268,12 +269,12 @@ Widget build(BuildContext context) {
             crossAxisSpacing: 15,
             mainAxisSpacing: 15,
             children: [
-              _buildActionCard("إضافة عميل", Icons.person_add_rounded, accentColor, _openAddCustomerSheet),
-              _buildActionCard("سند قبض", Icons.account_balance_wallet_rounded, Colors.greenAccent, _openPaymentSheet),
-              _buildActionCard("فاتورة مبيعات", Icons.shopping_bag_rounded, Colors.orangeAccent, () {
+              _buildActionCard(Translate.text(context, "إضافة عميل", "Add Customer"), Icons.person_add_rounded, accentColor, _openAddCustomerSheet),
+              _buildActionCard(Translate.text(context, "سند قبض", "Payment Receipt"), Icons.account_balance_wallet_rounded, Colors.greenAccent, _openPaymentSheet),
+              _buildActionCard(Translate.text(context, "فاتورة مبيعات", "Sales Invoice"), Icons.shopping_bag_rounded, Colors.orangeAccent, () {
                  Navigator.push(context, MaterialPageRoute(builder: (context) => AgentOrderPage(agentId: widget.userId)));
               }),
-              _buildActionCard("كشف حساب", Icons.analytics_rounded, Colors.blueAccent, () {
+              _buildActionCard(Translate.text(context, "كشف حساب", "Account Statement"), Icons.analytics_rounded, Colors.blueAccent, () {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => Agentcustomerstatement(agentId: widget.userId)));
               }),
             ],
@@ -376,10 +377,10 @@ Widget _buildActionCard(String t, IconData i, Color c, VoidCallback o) {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("تسجيل عميل جديد", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+             Text(Translate.text(context, "تسجيل عميل جديد", "Add New Customer"), style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 15),
-            TextField(controller: nameController, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "اسم العميل", labelStyle: TextStyle(color: Colors.grey))),
-            TextField(controller: phoneController, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "رقم التليفون", labelStyle: TextStyle(color: Colors.grey))),
+            TextField(controller: nameController, style: const TextStyle(color: Colors.white), decoration:  InputDecoration(labelText: Translate.text(context, "اسم العميل", "Customer Name"), labelStyle: TextStyle(color: Colors.grey))),
+            TextField(controller: phoneController, style: const TextStyle(color: Colors.white), decoration:  InputDecoration(labelText: Translate.text(context, "رقم التليفون", "Phone Number"), labelStyle: TextStyle(color: Colors.grey))),
             const SizedBox(height: 20),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.indigoAccent, minimumSize: const Size(double.infinity, 50)),
@@ -401,101 +402,8 @@ Widget _buildActionCard(String t, IconData i, Color c, VoidCallback o) {
       ),
     );
   }
-Widget _buildFlexibleStatsCard() {
-  // 1. الاستعلام الأساسي (يعمل دائماً بدون مشاكل)
-  Query query = FirebaseFirestore.instance
-      .collection('pending_collections')
-      .where('agentId', isEqualTo: widget.userId)
-      .where('status', isEqualTo: 'pending');
-
-  // 2. فلتر التاريخ (سيتم تفعيله فقط إذا اختار المندوب فترة)
-  if (startDate != null && endDate != null) {
-    // ملاحظة: قد يطلب منك Firebase رابط Index جديد لهذا الترتيب
-    query = query
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate!))
-        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endDate!));
-  }
-
-  return StreamBuilder<QuerySnapshot>(
-    stream: query.snapshots(),
-    builder: (context, snapshot) {
-      // حل مشكلة الخطأ الأحمر عند اختيار الفترة
-      if (snapshot.hasError) {
-        return _buildErrorUI("يجب تفعيل الفهرس (Index) للفترة المختارة من كونسول Firebase");
-      }
-
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center(child: LinearProgressIndicator());
-      }
-
-      double total = 0;
-      if (snapshot.hasData) {
-        for (var doc in snapshot.data!.docs) {
-          final data = doc.data() as Map<String, dynamic>;
-          if (data.containsKey('amount') && data['amount'] != null) {
-            total += (data['amount'] as num).toDouble();
-          }
-        }
-      }
-
-      return Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
-          borderRadius: BorderRadius.circular(25),
-        ),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("إجمالي العهدة", style: TextStyle(color: Colors.white70)),
-                IconButton(
-                  icon: Icon(Icons.calendar_month, color: startDate == null ? Colors.white : Colors.amber),
-                  onPressed: () => _selectDateRange(context),
-                ),
-              ],
-            ),
-            Text(
-              "${total.toStringAsFixed(2)} ج.م",
-              style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
-            ),
-            if (startDate != null)
-              TextButton.icon(
-                onPressed: () => setState(() => startDate = endDate = null),
-                icon: const Icon(Icons.refresh, size: 14, color: Colors.redAccent),
-                label: const Text("إلغاء الفلتر والعودة للإجمالي", style: TextStyle(color: Colors.redAccent, fontSize: 10)),
-              ),
-          ],
-        ),
-      );
-    },
-  );
-}
 
 
-// الدالة التي كانت مفقودة وتسبب خطأ في الكود
-Widget _buildErrorUI(String msg) {
-  return Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(15),
-    decoration: BoxDecoration(
-      color: Colors.red.withOpacity(0.1),
-      borderRadius: BorderRadius.circular(15),
-      border: Border.all(color: Colors.red.withOpacity(0.3)),
-    ),
-    child: Column(
-      children: [
-        const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 30),
-        const SizedBox(height: 8),
-        Text(msg, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red, fontSize: 12)),
-        const SizedBox(height: 8),
-        const Text("برجاء مراجعة الـ Debug Console في VS Code لضغط رابط التفعيل", 
-          style: TextStyle(color: Colors.white60, fontSize: 10)),
-      ],
-    ),
-  );
-}
 
   // --- 3. دالة تحصيل النقدية وإصدار الإيصال الشيك ---
 void _openPaymentSheet() {
@@ -528,8 +436,8 @@ void _openPaymentSheet() {
               margin: const EdgeInsets.all(20),
               decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(10)),
             ),
-            const Text(
-              "تسجيل تحصيل نقدي من عميل",
+             Text(
+              Translate.text(context, "تسجيل تحصيل نقدي من عميل", "Cash Collection Receipt"),
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
             ),
             const SizedBox(height: 25),
@@ -557,7 +465,7 @@ void _openPaymentSheet() {
                   dropdownColor: const Color(0xFF1E293B),
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
-                    labelText: "اختر العميل",
+                    labelText: Translate.text(context, "اختر العميل", "Select Customer"),
                     labelStyle: const TextStyle(color: Colors.white70),
                     enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Colors.white10), borderRadius: BorderRadius.circular(12)),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -576,9 +484,9 @@ void _openPaymentSheet() {
               keyboardType: TextInputType.number,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                labelText: "المبلغ المحصل",
+                labelText: Translate.text(context, "المبلغ المحصل", "Collected Amount"),
                 labelStyle: const TextStyle(color: Colors.white70),
-                suffixText: "ج.م",
+                suffixText: Translate.text(context, "ج.م", "EGP"),
                 enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Colors.white10), borderRadius: BorderRadius.circular(12)),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 prefixIcon: const Icon(Icons.account_balance_wallet, color: Colors.greenAccent),
@@ -591,7 +499,7 @@ void _openPaymentSheet() {
               controller: receiptController,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                labelText: "رقم الإيصال الورقي",
+                labelText: Translate.text(context, "رقم الإيصال الورقي", " Receipt Number"),
                 labelStyle: const TextStyle(color: Colors.white70),
                 enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Colors.white10), borderRadius: BorderRadius.circular(12)),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -607,32 +515,45 @@ void _openPaymentSheet() {
                 minimumSize: const Size(double.infinity, 55),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               ),
-              onPressed: () async {
-                if (selectedCustomerId == null || amountController.text.isEmpty) return;
-                
-                double amount = double.tryParse(amountController.text) ?? 0;
-                if (amount <= 0) return;
+          onPressed: () async {
+  if (selectedCustomerId == null || amountController.text.isEmpty) return;
+  
+  double amount = double.tryParse(amountController.text) ?? 0;
+  if (amount <= 0) return;
 
-                // إرسال البيانات لجدول الانتظار pending_collections
-                await FirebaseFirestore.instance.collection('pending_collections').add({
-                'agentId': widget.userId,      // ✅ نستخدم المتغير اللي جاي للصفحة
-                  'agentName': widget.agentName,  // ✅ نستخدم الاسم الفعلي
-                  'customerId': selectedCustomerId,
-                  'customerName': selectedCustomerName,
-                  'amount': amount,
-                  'receiptNo': receiptController.text,
-                  'status': 'pending', // هامة جداً لكي تظهر في صفحة الخزينة
-                  'date': FieldValue.serverTimestamp(),
-                });
+  // --- التعديل هنا: توليد رقم تلقائي لو الخانة فاضية ---
+  String finalReceiptNo = receiptController.text.trim();
+  if (finalReceiptNo.isEmpty) {
+    // بيعمل رقم زي TR-11741 زي اللي في الصورة عندك بالظبط
+    finalReceiptNo = "TR-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}";
+  }
 
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("✅ تم إرسال التحصيل للإدارة بنجاح"), backgroundColor: Colors.green),
-                  );
-                }
-              },
-              child: const Text("إرسال لتأكيد الخزينة", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+  // إرسال البيانات لجدول الانتظار pending_collections
+  await FirebaseFirestore.instance.collection('pending_collections').add({
+    'agentId': widget.userId,
+    'agentName': widget.agentName,
+    'customerId': selectedCustomerId,
+    'customerName': selectedCustomerName,
+    'amount': amount,
+    'receiptNo': finalReceiptNo, // نستخدم الرقم اللي جهزناه (يدوي أو تلقائي)
+    'status': 'pending',
+    'date': FieldValue.serverTimestamp(),
+  });
+
+  if (mounted) {
+    Navigator.pop(context);
+    
+    // نبعت الرقم النهائي للدالة اللي بتعمل صورة الإيصال للواتساب
+    _handleShareReceipt(selectedCustomerName, amountController.text, finalReceiptNo);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+       SnackBar(content: Text(Translate.text(context, "✅ تم التسجيل وتوليد رقم سند تلقائي", "✅ Registration successful and automatic receipt number generated")), backgroundColor: Colors.green),
+    );
+  }
+},
+              
+              
+              child:  Text(Translate.text(context, "إرسال لتأكيد الخزينة", "Send to Confirm Vault"), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             )
           ],
         ),
@@ -640,6 +561,8 @@ void _openPaymentSheet() {
     ),
   );
 }
+ 
+ 
   // --- 4. جلب بيانات الشركة وتصوير الإيصال ---
   void _handleShareReceipt(String customer, String amount, String rNo) async {
   try {
@@ -677,13 +600,13 @@ void _openPaymentSheet() {
       // مشاركة الملف
       await Share.shareXFiles(
         [XFile(file.path)],
-        text: 'إيصال استلام نقدية - ${companyData['name'] ?? 'المصنع الذكي'}',
+        text: Translate.text(context, 'إيصال استلام نقدية - ${companyData['name'] ?? 'المصنع الذكي'}', 'Cash Receipt - ${companyData['name'] ?? 'Smart Factory'}'),
       );
     }
   } catch (e) {
     debugPrint("Error sharing receipt: $e");
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("حدث خطأ أثناء إصدار الإيصال")),
+       SnackBar(content: Text(Translate.text(context, "حدث خطأ أثناء إصدار الإيصال", "Error occurred while generating receipt"))),
     );
   }
 }
@@ -709,7 +632,7 @@ void _openPaymentSheet() {
                 ? Image.network(company['logoUrl'], width: 60, height: 60)
                 : const Icon(Icons.business, size: 50, color: Colors.grey),
               Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Text(company['name'] ?? "الشركة", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                Text(company['name'] ?? Translate.text(context, "الشركة", "Company"), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                 Text(company['phone'] ?? "", style: const TextStyle(fontSize: 12)),
               ]),
             ],
@@ -717,14 +640,14 @@ void _openPaymentSheet() {
           const Divider(height: 40),
           const Icon(Icons.check_circle_outline_rounded, color: Colors.green, size: 80),
           const SizedBox(height: 20),
-          const Text("تم الاستلام بنجاح", 
+           Text(Translate.text(context, "تم الاستلام بنجاح", "Payment Received Successfully"), 
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black)),Text("$dayName $formattedDate | $formattedTime", 
           style: const TextStyle(fontSize: 12, color: Colors.grey)),
                     const SizedBox(height: 30),
-          _row("العميل", customer),
-          _row("المبلغ", "$amount ج.م"),
-          _row("رقم السند", rNo),
-          _row("المندوب المستلم", widget.agentName),
+          _row(Translate.text(context, "العميل", "Customer"), customer),
+          _row(Translate.text(context, "المبلغ", "Amount"), "$amount ج.م"),
+          _row(Translate.text(context, "رقم السند", "Receipt Number"), rNo),
+          _row(Translate.text(context, "المندوب المستلم", "Receiving Agent"), widget.agentName),
           const SizedBox(height: 40),
           Container(
             width: double.infinity,
@@ -734,15 +657,15 @@ void _openPaymentSheet() {
               borderRadius: BorderRadius.circular(15),
               border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
-            child: const Column(
+            child:  Column(
               children: [
                 Text(
-                  "إيصال عهدة مؤقت (ذمة أمانة)",
+                  Translate.text(context, "إيصال عهدة مؤقت (ذمة أمانة)", "Temporary Receipt (Trust Receipt)"),
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.redAccent),
                 ),
                 SizedBox(height: 4),
                 Text(
-                  "لا يعتبر هذا الإيصال سداداً نهائياً إلا بعد التوريد للخزينة وتأكيد الحسابات",
+                  Translate.text(context, "لا يعتبر هذا الإيصال سداداً نهائياً إلا بعد التوريد للخزينة وتأكيد الحسابات", "This receipt is not a final payment until it is delivered to the vault and accounts are confirmed"),
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 9, color: Colors.blueGrey),
                 ),
@@ -750,7 +673,7 @@ void _openPaymentSheet() {
             ),
           ),
           const SizedBox(height: 20),
-        const Text("نظام الإدارة الذكي - شكراً لثقتكم", 
+         Text(Translate.text(context, "نظام الإدارة الذكي - شكراً لثقتكم", "Smart Management System - Thank you for your trust"), 
           style: TextStyle(fontSize: 10, color: Colors.grey, letterSpacing: 1.2)),
         ],
       ),

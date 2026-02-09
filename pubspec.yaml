@@ -64,7 +64,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
+  assets:
+      - assets/ceo_avatar.png
   # assets:
     # - assets/translations/
     # - assets/fonts/Cairo-Regular.ttf

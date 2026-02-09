@@ -1,3 +1,4 @@
+import 'package:aiom/configer/settingPage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -36,21 +37,24 @@ Future<void> _updateAvailableStock(String prodId) async {
     setState(() => availableStock = 0);
   }
 }
-  void _addItemToOrder() {
-    if (selectedProductId != null && quantity > 0) {
-      setState(() {
-        orderItems.add({
-          'productId': selectedProductId,
-          'productName': selectedProductName,
-          'price': selectedProductPrice,
-          'qty': quantity,
-          'total': quantity * selectedProductPrice!,
-        });
-        selectedProductId = null;
-        availableStock = 0;
+void _addItemToOrder() {
+  if (selectedProductId != null && quantity > 0) {
+    setState(() {
+      orderItems.add({
+        'productId': selectedProductId,
+        'productName': selectedProductName,
+        'category': selectedCategory,      // ✅ أضفنا التصنيف
+        'subCategory': selectedSubCategory, // ✅ أضفنا التصنيف الفرعي
+        'price': selectedProductPrice,
+        'qty': quantity,
+        'total': quantity * selectedProductPrice!,
       });
-    }
+      // تصفير الاختيارات بعد الإضافة
+      selectedProductId = null;
+      availableStock = 0;
+    });
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +65,7 @@ Future<void> _updateAvailableStock(String prodId) async {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor, // خلفية متغيرة
       appBar: AppBar(
-        title: const Text("أوردر مندوب جديد"),
+        title:  Text(Translate.text(context, "أوردر مندوب جديد", "New Agent Order")),
         backgroundColor: isDark ? theme.cardColor : const Color(0xff692960),
         elevation: 0,
         centerTitle: true,
@@ -89,9 +93,13 @@ Future<void> _updateAvailableStock(String prodId) async {
           if (!snap.hasData) return const LinearProgressIndicator();
           return DropdownButtonFormField<String>(
             dropdownColor: theme.cardColor, // لون القائمة في الدارك مود
-            decoration: _inputDecoration(theme, "عميل الطلبية"),
+            decoration: _inputDecoration(theme, Translate.text(context, "اختر العميل", "Select Customer") ),
             items: snap.data!.docs.map((d) => DropdownMenuItem(value: d.id, child: Text(d['name']))).toList(),
-            onChanged: (val) => selectedCustomerId = val,
+            onChanged: (val) {
+                              setState(() {
+                                selectedCustomerId = val;
+                              });
+                            },
           );
         },
       ),
@@ -130,7 +138,7 @@ Future<void> _updateAvailableStock(String prodId) async {
         var cats = snap.data!.docs.map((d) => d['category'] as String).toSet().toList();
         return DropdownButtonFormField<String>(
           dropdownColor: theme.cardColor,
-          decoration: _inputDecoration(theme, "التصنيف الرئيسي"),
+          decoration: _inputDecoration(theme, Translate.text(context, "التصنيف الرئيسي", "Main Category")),
           items: cats.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
           onChanged: (val) => setState(() {
             selectedCategory = val;
@@ -150,7 +158,7 @@ Future<void> _updateAvailableStock(String prodId) async {
         var subCats = snap.data!.docs.map((d) => (d.data() as Map)['subCategory']?.toString() ?? "عام").toSet().toList();
         return DropdownButtonFormField<String>(
           dropdownColor: theme.cardColor,
-          decoration: _inputDecoration(theme, "النوع (Sub)"),
+          decoration: _inputDecoration(theme, Translate.text(context, "التصنيف الفرعى", "Sub Category")),
           items: subCats.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
           onChanged: (val) => setState(() {
             selectedSubCategory = val;
@@ -175,7 +183,7 @@ Future<void> _updateAvailableStock(String prodId) async {
             DropdownButtonFormField<String>(
               isExpanded: true,
               dropdownColor: theme.cardColor,
-              decoration: _inputDecoration(theme, "اختر المنتج"),
+              decoration: _inputDecoration(theme, Translate.text(context, "اختر المنتج", "Select Product")),
               items: snap.data!.docs.map((d) {
                 var data = d.data() as Map;
                 return DropdownMenuItem(value: d.id, child: Text("${data['productName']} - ${data['price']}ج"));
@@ -194,7 +202,7 @@ Future<void> _updateAvailableStock(String prodId) async {
             if (selectedProductId != null)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text("المخزن: $availableStock قطعة", 
+                child: Text(Translate.text(context, "المخزن: $availableStock قطعة", "Available Stock: $availableStock Pieces"), 
                     style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
               ),
             const SizedBox(height: 10),
@@ -202,7 +210,7 @@ Future<void> _updateAvailableStock(String prodId) async {
               children: [
                 Expanded(child: TextFormField(
                   keyboardType: TextInputType.number,
-                  decoration: _inputDecoration(theme, "الكمية"),
+                  decoration: _inputDecoration(theme, Translate.text(context, "الكمية", "Quantity")),
                   onChanged: (v) => quantity = int.tryParse(v) ?? 1,
                 )),
                 const SizedBox(width: 10),
@@ -231,7 +239,7 @@ Future<void> _updateAvailableStock(String prodId) async {
         margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
         child: ListTile(
           title: Text(orderItems[i]['productName'], style: const TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: Text("${orderItems[i]['qty']} x ${orderItems[i]['price']} ج.م"),
+          subtitle: Text(Translate.text(context, "${orderItems[i]['qty']} x ${orderItems[i]['price']} ج.م", "${orderItems[i]['qty']} x ${orderItems[i]['price']} EGP")  ),
           trailing: IconButton(
             icon: const Icon(Icons.delete_sweep_outlined, color: Colors.redAccent), 
             onPressed: () => setState(() => orderItems.removeAt(i))
@@ -248,7 +256,7 @@ Future<void> _updateAvailableStock(String prodId) async {
       child: Column(
         children: [
           Divider(color: theme.dividerColor),
-          Text("إجمالي الطلبية: $total ج.م", 
+          Text(Translate.text(context, "إجمالي الطلبية: $total ج.م", "Total Order Amount: $total EGP"), 
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: theme.dividerColor)),
           const SizedBox(height: 15),
           ElevatedButton(
@@ -258,7 +266,7 @@ Future<void> _updateAvailableStock(String prodId) async {
               minimumSize: const Size(double.infinity, 55),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
             ),
-            child: const Text("إرسال الطلبية للمحاسب 📤", style: TextStyle(color: Colors.white, fontSize: 16)),
+            child:  Text(Translate.text(context, "إرسال الطلبية للمحاسب 📤", "Submit Order to Accountant"), style: TextStyle(color: Colors.white, fontSize: 16)),
           )
         ],
       ),
@@ -275,18 +283,54 @@ Future<void> _updateAvailableStock(String prodId) async {
     );
   }
 
-  Future<void> _submitToFirestore() async {
-    // استخدمت UID المندوب الممرر في البارامتر
+Future<void> _submitToFirestore() async {
+  if (selectedCustomerId == null || orderItems.isEmpty) return;
+
+  try {
+    // 1. جلب بيانات المندوب والعميل لضمان عدم ظهور "غير معروف" عند المحاسب
+    var agentSnap = await FirebaseFirestore.instance.collection('users').doc(widget.agentId).get();
+    String agentName = agentSnap.exists ? (agentSnap.data()?['name'] ?? Translate.text(context, "غير معروف", "Unknown")) : Translate.text(context, "مندوب", "Agent");
+
+    var customerSnap = await FirebaseFirestore.instance.collection('customers').doc(selectedCustomerId).get();
+    String customerName = customerSnap.exists ? (customerSnap.data()?['name'] ?? Translate.text(context, "غير معروف", "Unknown")) : Translate.text(context, "عميل", "Customer");
+
+    // 2. تجهيز قائمة الأصناف (تأكيد إرسال Category و SubCategory)
+    // هنا نضمن أن كل حقل تمت إضافته في _addItemToOrder سيصل للـ Firebase
+    List<Map<String, dynamic>> finalItems = orderItems.map((item) => {
+      'productId': item['productId'],
+      'productName': item['productName'],
+      'category': item['category'],       // ✅ مضاف الآن للكوليكشن
+      'subCategory': item['subCategory'], // ✅ مضاف الآن للكوليكشن
+      'price': item['price'],
+      'qty': item['qty'],
+      'total': item['total'],
+    }).toList();
+
+    // 3. إرسال الطلبية كاملة البيانات لكوليكشن agent_orders
     await FirebaseFirestore.instance.collection('agent_orders').add({
+      'agentId': widget.agentId,
+      'agentName': agentName,      
       'customerId': selectedCustomerId,
-      'agentId': widget.agentId, 
-      'items': orderItems,
+      'customerName': customerName, 
+      'items': finalItems,         // القائمة الكاملة مع التصنيفات
       'totalAmount': orderItems.fold(0.0, (sum, item) => sum + item['total']),
       'status': 'pending',
       'orderDate': FieldValue.serverTimestamp(),
     });
-    if (mounted) Navigator.pop(context);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+         SnackBar(content: Text(Translate.text(context, "تم إرسال الطلبية بنجاح ✅", "Order Submitted Successfully ✅")), backgroundColor: Colors.green)
+      );
+      Navigator.pop(context);
+    }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(Translate.text(context, "فشل الإرسال: $e", "Submission Failed: $e")), backgroundColor: Colors.red)
+      );
+    }
+    print("Firebase Error: $e");
   }
-
-
+}
 }

@@ -1,3 +1,4 @@
+import 'package:aiom/configer/settingPage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -51,12 +52,12 @@ class _SmartInvoicePageState extends State<SmartInvoicePage> {
     double price = double.tryParse(priceCtrl.text) ?? 0.0;
 
     if (req <= 0 || selectedProductId == null) {
-      _showMsg("برجاء إدخال بيانات صحيحة", Colors.orange);
+      _showMsg(Translate.text(context, "برجاء إدخال بيانات صحيحة", "Please enter correct data"), Colors.orange);
       return;
     }
 
     if (req > totalAvailableStock) {
-      _showMsg("الكمية المطلوبة أكبر من المتاح!", Colors.red);
+      _showMsg(Translate.text(context, "الكمية المطلوبة أكبر من المتاح!", "Requested quantity exceeds available stock!"), Colors.red);
       return;
     }
 
@@ -78,104 +79,114 @@ class _SmartInvoicePageState extends State<SmartInvoicePage> {
 
   // دالة الحفظ (تظل كما هي في النسخة السابقة مع توزيع المخازن)
 Future<void> _processInvoice() async {
-    if (selectedCustomerId == null || itemsList.isEmpty) {
-      _showMsg("البيانات ناقصة!", Colors.orange);
-      return;
-    }
-
-    setState(() => isSaving = true);
-    try {
-      WriteBatch batch = _db.batch();
-      double finalInvoiceTotal = 0;
-
-      // 1. معالجة الأصناف وتجهيز البيانات
-      for (var item in itemsList) {
-        String pId = item['productId'];
-        int remainingToDeduct = item['qty'];
-        double itemPrice = item['price'];
-        double itemTotal = itemPrice * remainingToDeduct;
-        finalInvoiceTotal += itemTotal;
-        item['totalPrice'] = itemTotal; // توحيد المسمى
-
-        // منطق خصم المخازن
-        var invSnap = await _db.collection('products').doc(pId).collection('inventory').get();
-        for (var doc in invSnap.docs) {
-          if (remainingToDeduct <= 0) break;
-          int stockInWh = (doc.data()['quantity'] ?? 0) as int;
-          if (stockInWh > 0) {
-            int taken = (stockInWh >= remainingToDeduct) ? remainingToDeduct : stockInWh;
-            batch.update(doc.reference, {'quantity': stockInWh - taken});
-            remainingToDeduct -= taken;
-          }
-        }
-        // تحديث إجمالي مخزن المنتج
-        batch.update(_db.collection('products').doc(pId), {'totalQuantity': FieldValue.increment(-item['qty'])});
-      }
-
-      // 2. إنشاء مستند الفاتورة (لأغراض الشحن والطباعة)
-      DocumentReference invDoc = _db.collection('invoices').doc();
-      batch.set(invDoc, {
-        'invoiceId': invDoc.id,
-        'customerId': selectedCustomerId,
-        'customerName': selectedCustomerName,
-        'customerPhone': selectedCustomerPhone,
-        'items': itemsList,
-        'totalAmount': finalInvoiceTotal,
-        'date': FieldValue.serverTimestamp(),
-        'shippingStatus': 'ready',
-        'source': 'direct_office',
-      });
-
-      // 3. الكوليكشن الجديد الموحد (المصدر الوحيد للتقارير)
-      DocumentReference globalTransDoc = _db.collection('global_transactions').doc();
-      batch.set(globalTransDoc, {
-        'transactionId': globalTransDoc.id,
-        'type': 'invoice',           // نوع العملية: فاتورة
-        'source': 'office',          // المصدر: المكتب
-        'amount': finalInvoiceTotal,
-        'date': FieldValue.serverTimestamp(),
-        // بيانات العميل
-        'customerId': selectedCustomerId,
-        'customerName': selectedCustomerName,
-        // بيانات المسؤول (هنا نضع المكتب كمسؤول)
-        'agentId': 'ADMIN_OFFICE', 
-        'agentName': 'إدارة المكتب',
-        // تفاصيل الأصناف للتقارير التحليلية
-        'items': itemsList, 
-        'invoiceRef': invDoc.id,
-      });
-
-      // 4. تحديث سجل العميل التاريخي (transactions القديم للتوافق)
-      DocumentReference transDoc = _db.collection('customers').doc(selectedCustomerId).collection('transactions').doc();
-      batch.set(transDoc, {
-        'type': 'invoice',
-        'amount': finalInvoiceTotal,
-        'date': FieldValue.serverTimestamp(),
-        'items': itemsList,
-        'addedByAgent': 'ADMIN_OFFICE',
-      });
-
-      // 5. تحديث رصيد مديونية العميل
-      DocumentReference customerDoc = _db.collection('customers').doc(selectedCustomerId);
-      batch.update(customerDoc, {
-        'balance': FieldValue.increment(finalInvoiceTotal),
-      });
-
-      await batch.commit();
-      _showMsg("تم حفظ الفاتورة وتحديث التقارير ✅", Colors.green);
-      if (mounted) Navigator.pop(context);
-    } catch (e) {
-      _showMsg("خطأ في النظام: $e", Colors.red);
-    } finally {
-      if (mounted) setState(() => isSaving = false);
-    }
+  if (selectedCustomerId == null || itemsList.isEmpty) {
+    _showMsg(Translate.text(context, "البيانات ناقصة!", "Missing Data!"), Colors.orange);
+    return;
   }
+
+  setState(() => isSaving = true);
+  try {
+    // 🔥 خطوة إضافية: جلب بيانات المندوب المسؤول عن العميل
+    var customerSnap = await _db.collection('customers').doc(selectedCustomerId).get();
+    var customerData = customerSnap.data() as Map<String, dynamic>;
+
+    // سحب الـ ID والاسم (لو مش موجودين بيحط قيمة احتياطية)
+    String ownerAgentId = customerData['agentId'] ?? 'ADMIN_OFFICE';
+    String ownerAgentName = customerData['addedByAgent'] ?? Translate.text(context, "إدارة المكتب", "Office Management");
+
+    WriteBatch batch = _db.batch();
+    double finalInvoiceTotal = 0;
+
+    // 1. معالجة الأصناف وتجهيز البيانات
+    for (var item in itemsList) {
+      String pId = item['productId'];
+      int remainingToDeduct = item['qty'];
+      double itemPrice = item['price'];
+      double itemTotal = itemPrice * remainingToDeduct;
+      finalInvoiceTotal += itemTotal;
+      item['totalPrice'] = itemTotal;
+
+      // منطق خصم المخازن
+      var invSnap = await _db.collection('products').doc(pId).collection('inventory').get();
+      for (var doc in invSnap.docs) {
+        if (remainingToDeduct <= 0) break;
+        int stockInWh = (doc.data()['quantity'] ?? 0) as int;
+        if (stockInWh > 0) {
+          int taken = (stockInWh >= remainingToDeduct) ? remainingToDeduct : stockInWh;
+          batch.update(doc.reference, {'quantity': stockInWh - taken});
+          remainingToDeduct -= taken;
+        }
+      }
+      batch.update(_db.collection('products').doc(pId), {'totalQuantity': FieldValue.increment(-item['qty'])});
+    }
+
+    // 2. إنشاء مستند الفاتورة (لأغراض الشحن والطباعة)
+    DocumentReference invDoc = _db.collection('invoices').doc();
+    batch.set(invDoc, {
+      'invoiceId': invDoc.id,
+      'customerId': selectedCustomerId,
+      'customerName': selectedCustomerName,
+      'customerPhone': selectedCustomerPhone,
+      'items': itemsList,
+      'totalAmount': finalInvoiceTotal,
+      'date': FieldValue.serverTimestamp(),
+      'shippingStatus': 'ready',
+      'source': 'direct_office',
+      'agentId': ownerAgentId, // ربط الفاتورة بالمندوب
+    });
+
+    // 3. الكوليكشن الجديد الموحد (المصدر الوحيد للتقارير)
+    DocumentReference globalTransDoc = _db.collection('global_transactions').doc();
+    batch.set(globalTransDoc, {
+      'transactionId': globalTransDoc.id,
+      'type': 'invoice',
+      'source': 'office',
+      'amount': finalInvoiceTotal,
+      'date': FieldValue.serverTimestamp(),
+      'customerId': selectedCustomerId,
+      'customerName': selectedCustomerName,
+      // ✅ تم التعديل هنا ليأخذ مندوب العميل الفعلي
+      'agentId': ownerAgentId, 
+      'agentName': ownerAgentName,
+      'items': itemsList, 
+      'invoiceRef': invDoc.id,
+    });
+
+    // 4. تحديث سجل العميل التاريخي
+    DocumentReference transDoc = _db.collection('customers').doc(selectedCustomerId).collection('transactions').doc();
+    batch.set(transDoc, {
+      'type': 'invoice',
+      'amount': finalInvoiceTotal,
+      'date': FieldValue.serverTimestamp(),
+      'items': itemsList,
+      // ✅ تم التعديل هنا أيضاً لتوحيد البيانات
+      'addedByAgent': ownerAgentName, 
+      'agentId': ownerAgentId,
+    });
+
+    // 5. تحديث رصيد مديونية العميل
+    DocumentReference customerDocRef = _db.collection('customers').doc(selectedCustomerId);
+    batch.update(customerDocRef, {
+      'balance': FieldValue.increment(finalInvoiceTotal),
+    });
+
+    await batch.commit();
+    _showMsg(Translate.text(context, "تم حفظ الفاتورة وتحديث تقارير المندوب ✅", "Invoice saved and agent reports updated ✅"), Colors.green);
+    if (mounted) Navigator.pop(context);
+  } catch (e) {
+    _showMsg(Translate.text(context, "خطأ في النظام: $e", "System Error: $e"), Colors.red);
+  } finally {
+    if (mounted) setState(() => isSaving = false);
+  }
+}
+  
+  
   void _showMsg(String m, Color c) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m), backgroundColor: c));
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("فاتورة مبيعات ذكية"), backgroundColor: const Color(0xff692960)),
+      appBar: AppBar(title: Text(Translate.text(context, "فاتورة مبيعات ذكية", "Smart Sales Invoice")), backgroundColor: const Color(0xff692960)),
       body: isSaving 
         ? const Center(child: CircularProgressIndicator()) 
         : SingleChildScrollView(
@@ -202,7 +213,7 @@ Future<void> _processInvoice() async {
       builder: (context, snap) {
         if (!snap.hasData) return const LinearProgressIndicator();
         return DropdownButtonFormField<String>(
-          decoration: const InputDecoration(labelText: "اختر العميل", border: OutlineInputBorder()),
+          decoration: InputDecoration(labelText: Translate.text(context, "اختر العميل", "Select Customer"), border: OutlineInputBorder()),
           items: snap.data!.docs.map((d) => DropdownMenuItem(value: d.id, child: Text(d['name']))).toList(),
           onChanged: (id) {
             var doc = snap.data!.docs.firstWhere((d) => d.id == id);
@@ -223,7 +234,7 @@ Future<void> _processInvoice() async {
           builder: (context, snap) {
             if (!snap.hasData) return const SizedBox();
             return DropdownButtonFormField<String>(
-              decoration: const InputDecoration(labelText: "التصنيف الرئيسي", border: OutlineInputBorder()),
+              decoration: InputDecoration(labelText: Translate.text(context, "التصنيف الرئيسي", "Main Category"), border: OutlineInputBorder()),
               items: snap.data!.docs.map((d) => DropdownMenuItem(value: d['name'].toString(), child: Text(d['name']))).toList(),
               onChanged: (val) => setState(() { selectedCategory = val; selectedSubCategory = null; selectedProductId = null; }),
             );
@@ -237,7 +248,7 @@ Future<void> _processInvoice() async {
             if (!snap.hasData) return const SizedBox();
             final subs = snap.data!.docs.map((d) => d['subCategory'].toString()).toSet().toList();
             return DropdownButtonFormField<String>(
-              decoration: const InputDecoration(labelText: "التصنيف الفرعي", border: OutlineInputBorder()),
+              decoration: InputDecoration(labelText: Translate.text(context, "التصنيف الفرعي", "Sub Category"), border: OutlineInputBorder()),
               items: subs.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
               onChanged: (val) => setState(() { selectedSubCategory = val; selectedProductId = null; }),
             );
@@ -258,7 +269,7 @@ Future<void> _processInvoice() async {
         builder: (context, snap) {
           if (!snap.hasData) return const SizedBox();
           return DropdownButtonFormField<String>(
-            decoration: const InputDecoration(labelText: "اختر المنتج", border: OutlineInputBorder()),
+            decoration: InputDecoration(labelText: Translate.text(context, "اختر المنتج", "Select Product"), border: OutlineInputBorder()),
             items: snap.data!.docs.map((d) => DropdownMenuItem(value: d.id, child: Text(d['productName']))).toList(),
             onChanged: (id) {
               var doc = snap.data!.docs.firstWhere((d) => d.id == id);
@@ -285,17 +296,17 @@ Future<void> _processInvoice() async {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("المخزون: $totalAvailableStock قطعة", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
-                Text("السعر الرسمي: $currentProductPrice ج.م", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                Text(Translate.text(context, "المخزون: $totalAvailableStock قطعة", "Stock: $totalAvailableStock pieces")  , style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+                Text(Translate.text(context, "السعر الرسمي: $currentProductPrice ج.م", "Official Price: $currentProductPrice EGP"), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
               ],
             ),
           ),
           const SizedBox(height: 10),
           Row(
             children: [
-              Expanded(child: TextField(controller: qtyCtrl, decoration: const InputDecoration(labelText: "الكمية", border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+              Expanded(child: TextField(controller: qtyCtrl, decoration: InputDecoration(labelText: Translate.text(context, "الكمية", "Quantity"), border: OutlineInputBorder()), keyboardType: TextInputType.number)),
               const SizedBox(width: 10),
-              Expanded(child: TextField(controller: priceCtrl, decoration: const InputDecoration(labelText: "سعر البيع", border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+              Expanded(child: TextField(controller: priceCtrl, decoration: InputDecoration(labelText: Translate.text(context, "سعر البيع", "Selling Price"), border: OutlineInputBorder()), keyboardType: TextInputType.number)),
               const SizedBox(width: 5),
               IconButton(onPressed: _addItem, icon: const Icon(Icons.add_circle, color: Colors.green, size: 45)),
             ],
@@ -313,7 +324,7 @@ Future<void> _processInvoice() async {
       itemBuilder: (context, i) => Card(
         child: ListTile(
           title: Text(itemsList[i]['productName'], style: const TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: Text("الكمية: ${itemsList[i]['qty']} | السعر: ${itemsList[i]['price']} | الإجمالي: ${itemsList[i]['qty'] * itemsList[i]['price']}"),
+          subtitle: Text(Translate.text(context, "الكمية: ${itemsList[i]['qty']} | السعر: ${itemsList[i]['price']} | الإجمالي: ${itemsList[i]['qty'] * itemsList[i]['price']}", "Quantity: ${itemsList[i]['qty']} | Price: ${itemsList[i]['price']} | Total: ${itemsList[i]['qty'] * itemsList[i]['price']}")),
           trailing: IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: () => setState(() => itemsList.removeAt(i))),
         ),
       ),
@@ -331,15 +342,15 @@ Future<void> _processInvoice() async {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("إجمالي الفاتورة:", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              Text("$total ج.م", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green)),
+              Text(Translate.text(context, "إجمالي الفاتورة:", "Total Invoice"), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(Translate.text(context, "$total ج.م", "$total EGP"), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green)),
             ],
           ),
           const SizedBox(height: 10),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xff692960), minimumSize: const Size(double.infinity, 50)),
             onPressed: isSaving ? null : _processInvoice,
-            child: const Text("حفظ واعتماد الشحن", style: TextStyle(color: Colors.white, fontSize: 18)),
+            child: Text(Translate.text(context, "حفظ واعتماد الشحن", "Save and Approve Shipment"), style: const TextStyle(color: Colors.white, fontSize: 18)),
           ),
         ],
       ),

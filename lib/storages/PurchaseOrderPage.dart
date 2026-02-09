@@ -1,3 +1,4 @@
+import 'package:aiom/configer/settingPage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -27,7 +28,7 @@ void _addItemDialog() {
     context: context,
     builder: (context) => StatefulBuilder(
       builder: (context, setDialogState) => AlertDialog(
-        title: const Text("إضافة خامة / مادة أولية"),
+        title:  Text(Translate.text(context, "إضافة خامة / مادة أولية", "Add Raw Material / Component")),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -37,7 +38,7 @@ void _addItemDialog() {
                 stream: FirebaseFirestore.instance.collection('raw_materials').snapshots(),
                 builder: (context, snap) {
                   return DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(labelText: "اختر خامة موجودة"),
+                    decoration: InputDecoration(labelText: Translate.text(context, "اختر خامة موجودة", "Select Existing Raw Material")),
                     items: snap.hasData 
                       ? snap.data!.docs.map((doc) => DropdownMenuItem(
                           value: doc.id,
@@ -61,10 +62,10 @@ void _addItemDialog() {
               // 2. كتابة اسم خامة جديدة يدوياً
               TextField(
                 controller: customNameCtrl,
-                decoration: const InputDecoration(
-                  labelText: "اكتب اسم خامة جديدة",
+                decoration: InputDecoration(
+                  labelText: Translate.text(context, "اكتب اسم خامة جديدة", "Write New Raw Material Name"),
                   border: OutlineInputBorder(),
-                  hintText: "مثلاً: خشب زان، قماش مخمل..."
+                  hintText: Translate.text(context, "مثلاً: خشب زان، قماش مخمل...", "E.g.: Zan Wood, Wool Fabric...")
                 ),
                 onChanged: (val) {
                   if (val.isNotEmpty) {
@@ -76,13 +77,13 @@ void _addItemDialog() {
                 },
               ),
               const SizedBox(height: 10),
-              TextField(controller: qtyCtrl, decoration: const InputDecoration(labelText: "الكمية"), keyboardType: TextInputType.number),
-              TextField(controller: priceCtrl, decoration: const InputDecoration(labelText: "سعر الشراء"), keyboardType: TextInputType.number),
+              TextField(controller: qtyCtrl, decoration: InputDecoration(labelText: Translate.text(context, "الكمية", "Quantity")), keyboardType: TextInputType.number),
+              TextField(controller: priceCtrl, decoration: InputDecoration(labelText: Translate.text(context, "سعر الشراء", "Purchase Price")), keyboardType: TextInputType.number),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("إلغاء")),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(Translate.text(context, "إلغاء", "Cancel"))),
           ElevatedButton(
             onPressed: () {
               if (prodName != null && qtyCtrl.text.isNotEmpty) {
@@ -100,7 +101,7 @@ void _addItemDialog() {
                 Navigator.pop(context);
               }
             },
-            child: const Text("إضافة للجدول"),
+            child: Text(Translate.text(context, "إضافة للجدول", "Add to Table")),
           ),
         ],
       ),
@@ -139,7 +140,7 @@ for (var item in invoiceItems) {
     // إنشاء خامة جديدة لأن المعرف null (المستخدم كتب اسماً جديداً)
     DocumentReference newMatRef = FirebaseFirestore.instance.collection('raw_materials').doc();
     batch.set(newMatRef, {
-      'materialName': item['materialName'] ?? "خامة غير مسمى", // تأمين ضد الـ null
+      'materialName': item['materialName'] ?? Translate.text(context, "خامة بدون إسم", "Raw Material Without Name"), // تأمين ضد الـ null
       'stock': item['qty'] ?? 0,
       'unitPrice': item['buyPrice'] ?? 0,
       'lastUpdate': FieldValue.serverTimestamp(),
@@ -154,7 +155,7 @@ for (var item in invoiceItems) {
       await batch.commit();
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم تسجيل المشتريات وتحديث المخزن ✅")));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(Translate.text(context, "تم تسجيل المشتريات وتحديث المخزن ✅", "Purchase order registered and inventory updated ✅"))));
         Navigator.pop(context);
       }
     } catch (e) {
@@ -167,7 +168,7 @@ for (var item in invoiceItems) {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("فاتورة مشتريات جديدة"), backgroundColor: Colors.teal),
+      appBar: AppBar(title:  Text(Translate.text(context,"فاتورة مشتريات جديدة","new purchase order") ), backgroundColor: Colors.teal),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -178,7 +179,7 @@ for (var item in invoiceItems) {
               builder: (context, snap) {
                 if (!snap.hasData) return const LinearProgressIndicator();
                 return DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(labelText: "اختر المورد", border: OutlineInputBorder()),
+                  decoration:  InputDecoration(labelText: Translate.text(context, "اختر المورد", "Select Supplier"), border: OutlineInputBorder()),
                   items: snap.data!.docs.map((doc) => DropdownMenuItem(
                     value: doc.id,
                     child: Text(doc['name']),
@@ -191,14 +192,14 @@ for (var item in invoiceItems) {
               },
             ),
             const SizedBox(height: 20),
-            ElevatedButton.icon(onPressed: _addItemDialog, icon: const Icon(Icons.add), label: const Text("إضافة صنف للفاتورة")),
+            ElevatedButton.icon(onPressed: _addItemDialog, icon: const Icon(Icons.add), label:  Text(Translate.text(context, "إضافة صنف للفاتورة", "Add Item to Invoice"))),
             const Divider(),
             Expanded(
               child: ListView.builder(
                 itemCount: invoiceItems.length,
                 itemBuilder: (context, i) => // داخل itemBuilder في ListView
                       ListTile(
-                        title: Text(invoiceItems[i]['productName'] ?? invoiceItems[i]['materialName'] ?? "صنف غير معروف"),
+                        title: Text(invoiceItems[i]['productName'] ?? invoiceItems[i]['materialName'] ?? Translate.text(context, "صنف غير معروف", "Unknown Item")),
                         subtitle: Text("الكمية: ${invoiceItems[i]['qty'] ?? 0}"),
                         trailing: Text("${invoiceItems[i]['subTotal'] ?? 0} ج.م"),
                       )
@@ -210,8 +211,8 @@ for (var item in invoiceItems) {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("إجمالي الفاتورة:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                  Text("$totalInvoiceAmount ج.م", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.teal)),
+                   Text(Translate.text(context, "إجمالي الفاتورة:", 'Total'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                  Text(Translate.text(context, "$totalInvoiceAmount ج.م", "$totalInvoiceAmount EGP"), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.teal)),
                 ],
               ),
             ),
@@ -221,7 +222,7 @@ for (var item in invoiceItems) {
               : ElevatedButton(
                   onPressed: _saveInvoice,
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, minimumSize: const Size(double.infinity, 50)),
-                  child: const Text("حفظ الفاتورة وتحديث المخازن", style: TextStyle(color: Colors.white)),
+                  child:  Text(Translate.text(context,"حفظ الفاتورة وتحديث المخازن","Save invoice"), style: TextStyle(color: Colors.white)),
                 ),
           ],
         ),

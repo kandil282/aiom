@@ -1,3 +1,4 @@
+import 'package:aiom/configer/settingPage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -30,12 +31,12 @@ class RawMaterialsInventoryPage extends StatelessWidget {
                     backgroundColor: stock < 10 ? Colors.red[100] : Colors.blueGrey[100],
                     child: Icon(Icons.inventory_2, color: stock < 10 ? Colors.red : Colors.blueGrey),
                   ),
-                  title: Text(data['materialName'] ?? "خامة غير معروفة", style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text("آخر سعر شراء: ${data['unitPrice'] ?? 0} ج.م"),
+                  title: Text(data['materialName'] ?? Translate.text(context, "خامة غير معروفة", "Unknown Material"), style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text(Translate.text(context, "آخر سعر شراء: ${data['unitPrice'] ?? 0} ج.م", "Last Purchase Price: ${data['unitPrice'] ?? 0} EGP")),
                   trailing: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text("الكمية المتاحة", style: TextStyle(fontSize: 10)),
+                       Text(Translate.text(context, "الكمية المتاحة", "Available Quantity"), style: TextStyle(fontSize: 10)),
                       Text(
                         "$stock",
                         style: TextStyle(

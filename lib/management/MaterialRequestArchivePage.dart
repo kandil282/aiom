@@ -1,9 +1,10 @@
+import 'package:aiom/translate/translationhelper.dart';
 import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
+import 'package:aiom/configer/settings_provider.dart';
 class MaterialArchivePage extends StatefulWidget {
   const MaterialArchivePage({super.key});
 
@@ -39,7 +40,7 @@ Future<void> _printReport(List<QueryDocumentSnapshot> docs) async {
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Center(
-                    child: pw.Text("تقرير أرشيف حركة المخزن", 
+                    child: pw.Text(Translate.text(context as BuildContext, "تقرير أرشيف حركة المخزن", "Material Request Archive Report"), 
                       style: pw.TextStyle(fontSize: 22, font: arabicFont)),
                   ),
                   pw.SizedBox(height: 20),
@@ -49,7 +50,7 @@ Future<void> _printReport(List<QueryDocumentSnapshot> docs) async {
                     headerStyle: pw.TextStyle(font: arabicFont, fontWeight: pw.FontWeight.bold),
                     context: context,
                     data: <List<String>>[
-                      ['التاريخ', 'طلب بواسطة', 'الخامات والكميات', 'صرف بواسطة'],
+                      [Translate.text(context as BuildContext, "التاريخ", "Date"), Translate.text(context as BuildContext, "طلب بواسطة", "Requested By"), Translate.text(context as BuildContext, "الخامات والكميات", "Materials & Quantities"), Translate.text(context as BuildContext, "صرف بواسطة", "Dispatched By")],
                       ...docs.map((doc) {
                         var data = doc.data() as Map<String, dynamic>;
                         List items = data['items'] ?? [];
@@ -61,9 +62,9 @@ Future<void> _printReport(List<QueryDocumentSnapshot> docs) async {
                         
                         return [
                           data['dispatchedAt']?.toDate().toString().split(' ')[0] ?? '',
-                          data['requestedBy'] ?? 'غير معروف',
+                          data['requestedBy'] ?? Translate.text(context as BuildContext, "غير معروف", "Unknown"),
                           itemsText,
-                          data['dispatchedBy'] ?? 'غير معروف',
+                          data['dispatchedBy'] ?? Translate.text(context as BuildContext, "غير معروف", "Unknown"),
                         ];
                       })
                     ],
@@ -78,9 +79,9 @@ Future<void> _printReport(List<QueryDocumentSnapshot> docs) async {
 
     await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   } catch (e) {
-    debugPrint("خطأ في الطباعة: $e");
+    debugPrint(Translate.text(context, "خطأ في الطباعة: $e", "Error printing: $e"));
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("لم يتمكن النظام من فتح الطباعة: $e"))
+      SnackBar(content: Text(Translate.text(context , "لم يتمكن النظام من فتح الطباعة: $e", "System failed to open print: $e")))
     );
   }
 }
@@ -112,7 +113,7 @@ Future<void> _printReport(List<QueryDocumentSnapshot> docs) async {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("سجل الحركات المنتهية"),
+        title: Text(Translate.text(context, "سجل الحركات المنتهية", "Finished Material Requests Archive")),
         backgroundColor: Colors.blueGrey,
         actions: [
           IconButton(
@@ -128,7 +129,7 @@ Future<void> _printReport(List<QueryDocumentSnapshot> docs) async {
       body: StreamBuilder<QuerySnapshot>(
         stream: query.snapshots(),
         builder: (context, snap) {
-          if (snap.hasError) return Center(child: Text("يجب تفعيل الفهرس (Index) في الفايربيز"));
+          if (snap.hasError) return Center(child: Text(Translate.text(context, "يجب تفعيل الفهرس (Index) في الفايربيز", "You must enable Index in Firebase")));
           if (!snap.hasData) return const Center(child: CircularProgressIndicator());
           
           var docs = snap.data!.docs;
@@ -141,7 +142,7 @@ Future<void> _printReport(List<QueryDocumentSnapshot> docs) async {
                   child: ElevatedButton.icon(
                     onPressed: () => _printReport(docs),
                     icon: const Icon(Icons.print),
-                    label: const Text("طباعة التقرير الحالي"),
+                    label: Text(Translate.text(context, "طباعة التقرير الحالي", "Print Current Report")),
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey),
                   ),
                 ),
@@ -153,19 +154,19 @@ Future<void> _printReport(List<QueryDocumentSnapshot> docs) async {
                     return Card(
                       margin: const EdgeInsets.all(10),
                       child: ExpansionTile(
-                        title: Text("إذن: ${docs[i].id.substring(0, 5)} - ${data['requestedBy']}"),
-                        subtitle: Text("التاريخ: ${data['dispatchedAt']?.toDate().toString().split('.')[0] ?? ''}"),
+                        title: Text(Translate.text(context, "إذن: ${docs[i].id.substring(0, 5)} - ${data['requestedBy']}", "Request: ${docs[i].id.substring(0, 5)} - ${data['requestedBy']}")),
+                        subtitle: Text(Translate.text(context, "التاريخ: ${data['dispatchedAt']?.toDate().toString().split('.')[0] ?? ''}", "Date: ${data['dispatchedAt']?.toDate().toString().split('.')[0] ?? ''}")),
                         children: [
                           Padding(
                             padding: const EdgeInsets.all(15),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text("👤 طلب بواسطة: ${data['requestedBy']}"),
+                                Text(Translate.text(context, "👤 طلب بواسطة: ${data['requestedBy']}", "👤 Requested by: ${data['requestedBy']}")),
                                 // Text("💰 اعتماد مالي: ${data['approvedBy']}"),
-                                Text("📦 صرف مخزني: ${data['dispatchedBy']}"),
+                                Text(Translate.text(context, "📦 صرف مخزني: ${data['dispatchedBy']}", "📦 Dispatched by: ${data['dispatchedBy']}")),
                                 const Divider(),
-                                const Text("الأصناف:", style: TextStyle(fontWeight: FontWeight.bold)),
+                                 Text(Translate.text(context, "الأصناف:", "Items"), style: TextStyle(fontWeight: FontWeight.bold)),
                                 ...(data['items'] as List).map((item) => Text("• ${item['materialName']} (${item['qty']})")),
                               ],
                             ),

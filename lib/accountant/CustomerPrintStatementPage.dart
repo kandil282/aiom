@@ -1,3 +1,4 @@
+import 'package:aiom/configer/settingPage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pdf/pdf.dart';
@@ -59,14 +60,14 @@ class _CustomerStatementPageState extends State<CustomerStatementPage> {
           textDirection: pw.TextDirection.rtl,
           child: pw.Column(
             children: [
-              pw.Text(type == 'invoice' ? "فاتورة مبيعات" : "سند قبض", 
+              pw.Text(type == 'invoice' ? Translate.text(context as BuildContext, "فاتورة مبيعات" , 'invoice'): Translate.text(context as BuildContext, "سند قبض", 'receipt'), 
                 style: pw.TextStyle(font: ttf, fontSize: 25, fontWeight: pw.FontWeight.bold)),
               pw.Divider(),
               
               // بيانات العميل
               pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-                pw.Text("العميل: $selectedCustomerName", style: pw.TextStyle(font: ttf)),
-                pw.Text("التاريخ: ${data['date']?.toDate().toString().substring(0,16)}", style: pw.TextStyle(font: ttf)),
+                pw.Text(Translate.text(context as BuildContext, "العميل: $selectedCustomerName", 'customer')  , style: pw.TextStyle(font: ttf)),
+                pw.Text(Translate.text(context as BuildContext, "التاريخ: ${data['date']?.toDate().toString().substring(0,16)}", 'date'), style: pw.TextStyle(font: ttf)),
               ]),
               pw.SizedBox(height: 20),
 
@@ -117,14 +118,14 @@ else
         pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
-            pw.Text("وصلنا من السيد: $selectedCustomerName", style: pw.TextStyle(font: ttf, fontSize: 14)),
-            pw.Text("مبلغ وقدره: ${data['amount']} ج.م", style: pw.TextStyle(font: ttf, fontSize: 14, fontWeight: pw.FontWeight.bold)),
+            pw.Text(Translate.text(context as BuildContext, "وصلنا من السيد: $selectedCustomerName", 'customer'), style: pw.TextStyle(font: ttf, fontSize: 14)),
+            pw.Text(Translate.text(context as BuildContext, "مبلغ وقدره: ${data['amount']} ج.م", 'amount'), style: pw.TextStyle(font: ttf, fontSize: 14, fontWeight: pw.FontWeight.bold)),
           ],
         ),
         pw.SizedBox(height: 10),
         pw.Divider(color: PdfColors.blueGrey),
         pw.SizedBox(height: 10),
-        pw.Text("وذلك عن: ${data['details'] ?? 'سند قبض نقدي لسيادتكم'}", 
+        pw.Text(Translate.text(context as BuildContext, "وذلك عن: ${data['details'] ?? 'سند قبض نقدي لسيادتكم'}", 'details'), 
           style: pw.TextStyle(font: ttf, fontSize: 13, color: PdfColors.grey700)),
       ],
     ),
@@ -143,7 +144,7 @@ pw.Align(
     child: pw.Row(
       mainAxisSize: pw.MainAxisSize.min,
       children: [
-        pw.Text("الإجمالي المطلوب: ", style: pw.TextStyle(font: ttf, fontSize: 14)),
+        pw.Text(Translate.text(context as BuildContext, "الإجمالي المطلوب: ", 'total'), style: pw.TextStyle(font: ttf, fontSize: 14)),
         pw.Text("${data['amount']} ج.م", 
           style: pw.TextStyle(font: ttf, fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
       ],
@@ -194,7 +195,7 @@ pw.Align(
 
       tableData.add([
         (d['date'] as Timestamp).toDate().toString().substring(0, 10), // التاريخ
-        isInvoice ? 'فاتورة' : 'سند قبض', // النوع
+        isInvoice ? Translate.text(context as BuildContext, "فاتورة", 'invoice') : Translate.text(context as BuildContext, "سند قبض", 'receipt'), // النوع
         d['details'] ?? '-', // البيان
         isInvoice ? amount.toStringAsFixed(1) : "", // مدين (عليه)
         !isInvoice ? amount.toStringAsFixed(1) : "", // دائن (له)
@@ -210,7 +211,7 @@ pw.Align(
       theme: pw.ThemeData.withFont(base: ttf),
       textDirection: pw.TextDirection.rtl,
       build: (pw.Context context) => [
-        pw.Header(level: 0, child: pw.Text("كشف حساب تفصيلي: $selectedCustomerName", style: pw.TextStyle(font: ttf, fontSize: 18))),
+        pw.Header(level: 0, child: pw.Text(Translate.text(context as BuildContext, "كشف حساب تفصيلي: $selectedCustomerName", 'statement'), style: pw.TextStyle(font: ttf, fontSize: 18))),
         
         pw.TableHelper.fromTextArray(
           context: context,
@@ -218,7 +219,14 @@ pw.Align(
           headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey800),
           cellStyle: pw.TextStyle(font: ttf, fontSize: 9),
           // العناوين الجديدة للجدول
-          headers: ['التاريخ', 'النوع', 'البيان', 'مدين (+)', 'دائن (-)', 'الرصيد'],
+          headers: [
+            Translate.text(context as BuildContext, "التاريخ", 'date'),
+            Translate.text(context as BuildContext, "النوع", 'type'),
+            Translate.text(context as BuildContext, "البيان", 'details'),
+            Translate.text(context as BuildContext, "مدين (+)", 'debit'),
+            Translate.text(context as BuildContext, "دائن (-)", 'credit'),
+            Translate.text(context as BuildContext, "الرصيد", 'balance')
+          ],
           data: tableData,
           columnWidths: {
             0: const pw.FlexColumnWidth(2), // التاريخ
@@ -234,7 +242,7 @@ pw.Align(
         pw.Container(
           alignment: pw.Alignment.centerLeft,
           child: pw.Text(
-            "صافي المديونية النهائية: ${runningBalance.toStringAsFixed(2)} ج.م",
+            Translate.text(context as BuildContext, "صافي المديونية النهائية: ${runningBalance.toStringAsFixed(2)} ج.م", 'final_balance'),
             style: pw.TextStyle(font: ttf, fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.red900)
           ),
         )
@@ -269,7 +277,7 @@ pw.Align(
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(data['type'] == 'invoice' ? "تفاصيل الفاتورة" : "تفاصيل السند", 
+                    Text(data['type'] == 'invoice' ? Translate.text(context as BuildContext, "تفاصيل الفاتورة", 'invoice_details') : Translate.text(context as BuildContext, "تفاصيل السند", 'receipt_details'), 
                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
                     IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
                   ],
@@ -296,11 +304,11 @@ pw.Align(
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text("تصنيف: ${catData['cat']} - ${catData['sub']}"),
-                                    Text("عدد: ${item['qty']}  ×  سعر: ${item['price']}", style: const TextStyle(color: Colors.green)),
+                                    Text(Translate.text(context as BuildContext, "تصنيف: ${catData['cat']} - ${catData['sub']}", 'category')),
+                                    Text(Translate.text(context as BuildContext, "عدد: ${item['qty']}  ×  سعر: ${item['price']}", 'quantity_price'), style: const TextStyle(color: Colors.green)),
                                   ],
                                 ),
-                                trailing: Text("${item['total']} ج.م", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue[800])),
+                                trailing: Text(Translate.text(context as BuildContext, "${item['total']} ج.م", 'total_amount'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue[800])),
                               ),
                             );
                           },
@@ -313,9 +321,9 @@ pw.Align(
                         children: [
                           const Icon(Icons.monetization_on, size: 80, color: Colors.green),
                           const SizedBox(height: 20),
-                          Text("${data['amount']} ج.م", style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
+                          Text(Translate.text(context as BuildContext, "${data['amount']} ج.م", 'amount'), style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 10),
-                          Text(data['details'] ?? "لا يوجد تفاصيل", style: const TextStyle(fontSize: 18)),
+                          Text(data['details'] ?? Translate.text(context as BuildContext, "لا يوجد تفاصيل", 'no_details'), style: const TextStyle(fontSize: 18)),
                         ],
                       ),
                     ),
@@ -338,7 +346,7 @@ pw.Align(
                       _printSingleTransaction(doc); // اطبع المستند اللي في إيدك ده "فوراً"
                     },
                     icon: const Icon(Icons.print),
-                    label: const Text("طباعة هذا المستند", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    label:  Text(Translate.text(context as BuildContext, "طباعة هذا المستند", 'print_document'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   ),
                 )
               ],
@@ -352,7 +360,7 @@ pw.Align(
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("حسابات العملاء"), centerTitle: true),
+      appBar: AppBar(title:  Text(Translate.text(context as BuildContext, "حسابات العملاء", 'customers_accounts')), centerTitle: true),
       body: Column(
         children: [
           // 1. اختيار العميل
@@ -364,7 +372,7 @@ pw.Align(
                 if (!snapshot.hasData) return const LinearProgressIndicator();
                 return DropdownButtonFormField<String>(
                   decoration: InputDecoration(
-                    labelText: "اختر العميل", 
+                    labelText: Translate.text(context as BuildContext, "اختر العميل", 'select_customer'), 
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                     prefixIcon: const Icon(Icons.person_search),
                     filled: true, fillColor: Colors.blue[50]
@@ -400,9 +408,9 @@ pw.Align(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        const Text("إجمالي المديونية", style: TextStyle(color: Colors.white70, fontSize: 14)),
+                         Text(Translate.text(context as BuildContext, "إجمالي المديونية", 'total_debt'), style: TextStyle(color: Colors.white70, fontSize: 14)),
                         const SizedBox(height: 5),
-                        Text("${totalBalance.toStringAsFixed(2)} ج.م", style: const TextStyle(color: Color(0xFF2ECC71), fontSize: 24, fontWeight: FontWeight.bold)),
+                        Text(Translate.text(context as BuildContext, "${totalBalance.toStringAsFixed(2)} ج.م", 'total_amount'), style: const TextStyle(color: Color(0xFF2ECC71), fontSize: 24, fontWeight: FontWeight.bold)),
                       ]),
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
@@ -412,7 +420,7 @@ pw.Align(
                         ),
                         onPressed: _printStatementDirectly, // الزر أصبح ينادي الدالة المباشرة
                         icon: const Icon(Icons.receipt_long),
-                        label: const Text("كشف حساب"),
+                        label:  Text(Translate.text(context as BuildContext, "كشف حساب", 'account_statement')),
                       )
                     ],
                   ),
@@ -427,7 +435,7 @@ pw.Align(
                 controller: searchController,
                 onChanged: (val) => setState(() => searchQuery = val),
                 decoration: InputDecoration(
-                  hintText: "بحث في حركات العميل (رقم، مبلغ، تفاصيل)...",
+                  hintText: Translate.text(context as BuildContext, "بحث في حركات العميل (رقم، مبلغ، تفاصيل)...", 'search_customer_transactions'),
                   prefixIcon: const Icon(Icons.search),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
                   filled: true,
@@ -443,7 +451,7 @@ pw.Align(
             child: selectedCustomerId == null 
             ? Center(child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [Icon(Icons.people_alt, size: 60, color: Colors.grey), SizedBox(height: 10), Text("الرجاء اختيار عميل")],
+                children: [const Icon(Icons.people_alt, size: 60, color: Colors.grey), const SizedBox(height: 10), Text(Translate.text(context as BuildContext, "الرجاء اختيار عميل", 'please_select_customer'))],
               ))
             : StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance.collection('customers').doc(selectedCustomerId).collection('transactions').orderBy('date', descending: true).snapshots(),
@@ -479,7 +487,7 @@ WidgetsBinding.instance.addPostFrameCallback((_) {
   }
   if ((totalBalance - sum).abs() > 0.1) setState(() => totalBalance = sum);
 });
-                  if (filteredDocs.isEmpty) return const Center(child: Text("لا توجد حركات تطابق بحثك"));
+                  if (filteredDocs.isEmpty) return Center(child: Text(Translate.text(context as BuildContext, "لا توجد حركات تطابق بحثك", 'no_transactions_match_search')));
 
                   return ListView.builder(
                     padding: const EdgeInsets.only(top: 5, bottom: 20),
@@ -503,7 +511,7 @@ WidgetsBinding.instance.addPostFrameCallback((_) {
                             ),
                           ),
                           title: Text(
-                            isCancelled ? "ملغاة - ${data['details']}" : (data['details'] ?? (isInvoice ? "فاتورة مبيعات" : "سند قبض")),
+                            isCancelled ? Translate.text(context as BuildContext, "ملغاة - ${data['details']}", 'cancelled_details') : (data['details'] ?? (isInvoice ? Translate.text(context as BuildContext, "فاتورة مبيعات", 'sales_invoice') : Translate.text(context as BuildContext, "سند قبض", 'receipt'))),
                             style: TextStyle(
                               decoration: isCancelled ? TextDecoration.lineThrough : null,
                               color: isCancelled ? Colors.grey : Colors.black
@@ -514,7 +522,7 @@ WidgetsBinding.instance.addPostFrameCallback((_) {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                "${data['amount']} ج.م", 
+                                Translate.text(context as BuildContext, "${data['amount']} ج.م", 'amount_currency'), 
                                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: isCancelled ? Colors.grey : Colors.black)
                               ),
                               const SizedBox(width: 8),

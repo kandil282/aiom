@@ -1,3 +1,6 @@
+import 'dart:math';
+
+import 'package:aiom/configer/settingPage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -42,9 +45,9 @@ class _SalesManagerDashboardState extends State<SalesManagerDashboard> with Sing
         title: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.rocket_launch_rounded, color: Colors.orangeAccent, size: 28),
+            const Icon(Icons.business_center, color: Colors.orangeAccent, size: 28),
             const SizedBox(width: 10),
-            Text("غرفة عمليات المبيعات", style: TextStyle(color: textColor, fontWeight: FontWeight.w900, fontSize: 22)),
+            Text(Translate.text(context, "مدير المبيعات", "Sales Manager"), style: TextStyle(color: textColor, fontWeight: FontWeight.w900, fontSize: 22)),
           ],
         ),
         centerTitle: true,
@@ -53,10 +56,10 @@ class _SalesManagerDashboardState extends State<SalesManagerDashboard> with Sing
           indicatorColor: Colors.orangeAccent,
           labelColor: Colors.orangeAccent,
           unselectedLabelColor: Colors.grey,
-          tabs: const [
-            Tab(text: "لوحة الأبطال", icon: Icon(Icons.emoji_events)),
-            Tab(text: "أداء الفريق", icon: Icon(Icons.speed)),
-            Tab(text: "بث مباشر", icon: Icon(Icons.online_prediction)),
+          tabs:  [
+            Tab(text: Translate.text(context, "لوحة الأبطال", "Podium"), icon: Icon(Icons.emoji_events)),
+            Tab(text: Translate.text(context, "أداء الفريق", "Team Performance"), icon: Icon(Icons.speed)),
+            Tab(text: Translate.text(context, "بث مباشر", "Live Feed"), icon: Icon(Icons.online_prediction)),
           ],
         ),
       ),
@@ -150,7 +153,7 @@ Future<Map<String, double>> _getAgentDetailedStats(String agentId) async {
           return const Center(child: CircularProgressIndicator());
         }
         if (!userSnap.hasData || userSnap.data!.docs.isEmpty) {
-          return const Center(child: Text("لا يوجد مناديب حالياً", style: TextStyle(color: Colors.white)));
+          return Center(child: Text(Translate.text(context, "لا يوجد مناديب حالياً", "No Sales Agents Available"), style: const TextStyle(color: Colors.white)));
         }
 
         // ثانياً: نحسب مبيعات كل مندوب بناءً على القائمة اللي جت لنا
@@ -173,7 +176,7 @@ future: Future.wait(userSnap.data!.docs.map((userDoc) async {
 })),
           builder: (context, performanceSnap) {
             if (!performanceSnap.hasData) {
-              return const Center(child: Text("جاري حساب الأرقام...", style: TextStyle(color: Colors.grey)));
+              return Center(child: Text(Translate.text(context, "جاري حساب الأرقام...", "Calculating numbers..."), style: const TextStyle(color: Colors.grey)));
             }
 
             // ترتيب البيانات: الأعلى مبيعات في الأول
@@ -187,7 +190,7 @@ future: Future.wait(userSnap.data!.docs.map((userDoc) async {
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  const Text("🔥 المتصدرين حالياً 🔥", 
+                  Text(Translate.text(context, "🔥 المتصدرين حالياً 🔥", "🔥 Current Top Performers 🔥"), 
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.orangeAccent)),
                   const SizedBox(height: 30),
                   
@@ -229,7 +232,7 @@ future: Future.wait(userSnap.data!.docs.map((userDoc) async {
                         children: [
                           Text(currencyFormat.format(agent['total']), 
                             style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
-                          Text("تحصيل: ${currencyFormat.format(agent['collected'])}", 
+                          Text(Translate.text(context, "تحصيل: ${currencyFormat.format(agent['collected'])}", "Collected: ${currencyFormat.format(agent['collected'])}"), 
                             style: const TextStyle(fontSize: 10, color: Colors.greenAccent)),
                           // مثال لحساب عمولة 1% من التحصيل
                           // Text("العمولة: ${currencyFormat.format(agent['collected'] * 0.01)}", 
@@ -272,7 +275,7 @@ future: Future.wait(userSnap.data!.docs.map((userDoc) async {
         const SizedBox(height: 5),
         Text(agent['name'], style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isDark ? Colors.white : Colors.black)),
         Text(currencyFormat.format(agent['total']), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isDark ? Colors.white : Colors.black)),
-        Text("تحصيل: ${currencyFormat.format(agent['collected'])}", 
+        Text(Translate.text(context, "تحصيل: ${currencyFormat.format(agent['collected'])}", "Collected: ${currencyFormat.format(agent['collected'])}"), 
       style: const TextStyle(fontSize: 10, color: Colors.greenAccent)),
       // Text("العمولة: ${currencyFormat.format(agent['collected'] * 0.01)}", 
       // style: const TextStyle(fontSize: 10, color: Colors.orangeAccent, fontWeight: FontWeight.bold)),
@@ -376,15 +379,15 @@ Widget _buildSummaryCard({
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("التحقيق: ${(percent * 100).toStringAsFixed(1)}%",
+              Text(Translate.text(context, "التحقيق: ${(percent * 100).toStringAsFixed(1)}%", "Achievement: ${(percent * 100).toStringAsFixed(1)}%"),
                   style: TextStyle(color: color.withOpacity(0.7), fontSize: 12)),
-              Text("المطلوب: ${currencyFormat.format(target)}",
+              Text(Translate.text(context, "المطلوب: ${currencyFormat.format(target)}", "Target: ${currencyFormat.format(target)}"),
                   style: TextStyle(color: color.withOpacity(0.7), fontSize: 12)),
             ],
           ),
         ] else ...[
            const SizedBox(height: 5),
-           Text("لا يوجد تارجت محدد", style: TextStyle(color: color.withOpacity(0.5), fontSize: 12)),
+           Text(Translate.text(context, "لا يوجد تارجت محدد", "No Target Defined"), style: TextStyle(color: color.withOpacity(0.5), fontSize: 12)),
         ]
       ],
     ),
@@ -398,7 +401,7 @@ Widget _buildTeamPerformanceTab(bool isDark) {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("إجمالي أداء الشركة",
+        Text(Translate.text(context, "إجمالي أداء الشركة", "Company Overall Performance"),
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
         const SizedBox(height: 20),
 
@@ -410,7 +413,7 @@ Widget _buildTeamPerformanceTab(bool isDark) {
               return const Center(child: CircularProgressIndicator());
             }
             if (!companyStatsSnap.hasData) {
-              return const Text("لا توجد بيانات للشركة", style: TextStyle(color: Colors.grey));
+              return Center(child: Text(Translate.text(context, "لا توجد بيانات للشركة", "No Company Data Available"), style: TextStyle(color: Colors.grey)));
             }
 
             // جلب التارجت الكلي للشركة (جمع تارجت كل المناديب)
@@ -430,14 +433,14 @@ double totalCompanyTarget = userSnap.data!.docs.fold(0.0, (sum, doc) {
                 return Column(
                   children: [
                     _buildSummaryCard(
-                      title: "إجمالي المبيعات",
+                      title: Translate.text(context, "إجمالي المبيعات", "Total Sales"),
                       total: companyStatsSnap.data!['totalSales'] ?? 0,
                       target: totalCompanyTarget, // هنا استخدم التارجت الكلي
                       color: Colors.blueAccent,
                       icon: Icons.shopping_bag_rounded,
                     ),
                     _buildSummaryCard(
-                      title: "إجمالي التحصيلات",
+                      title: Translate.text(context, "إجمالي التحصيلات", "Total Collections"),
                       total: companyStatsSnap.data!['totalCollections'] ?? 0,
                       target: totalCompanyTarget, // ممكن يكون ليها تارجت تحصيل منفصل لو حبيت
                       color: Colors.greenAccent,
@@ -451,7 +454,7 @@ double totalCompanyTarget = userSnap.data!.docs.fold(0.0, (sum, doc) {
         ),
 
         const SizedBox(height: 30),
-        const Text("أداء المناديب الفردي",
+        Text(Translate.text(context, "أداء المناديب الفردي", "Individual Agent Performance"),
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
         const SizedBox(height: 20),
 
@@ -463,7 +466,7 @@ double totalCompanyTarget = userSnap.data!.docs.fold(0.0, (sum, doc) {
               return const Center(child: CircularProgressIndicator());
             }
             if (!userSnap.hasData || userSnap.data!.docs.isEmpty) {
-              return const Center(child: Text("لا يوجد مناديب لعرضهم.", style: TextStyle(color: Colors.grey)));
+              return Center(child: Text(Translate.text(context, "لا يوجد مناديب لعرضهم.", "No Sales Agents Available"), style: TextStyle(color: Colors.grey)));
             }
 
             // هنا بقى بنجيب الـ stats لكل مندوب
@@ -478,7 +481,7 @@ double totalCompanyTarget = userSnap.data!.docs.fold(0.0, (sum, doc) {
                 userData['uid'] = uid; // نضيف الـ UID عشان يكون متاح في الداتا
                 return {
                   'uid': uid,
-                  'name': userData['username'] ?? 'مجهول',
+                  'name': Translate.text(context, userData['username'] ?? 'مجهول', userData['username'] ?? 'Unknown'),
                   'sales': stats['sales'] ?? 0,
                   'collected': stats['collections'] ?? 0,
                   'target': (userData['target'] ?? 0).toDouble(),
@@ -515,7 +518,7 @@ double totalCompanyTarget = userSnap.data!.docs.fold(0.0, (sum, doc) {
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("مبيعات: ${currencyFormat.format(agent['sales'])} | تحصيل: ${currencyFormat.format(agent['collected'])}",
+                            Text(Translate.text(context, "مبيعات: ${currencyFormat.format(agent['sales'])} | تحصيل: ${currencyFormat.format(agent['collected'])}", "Sales: ${currencyFormat.format(agent['sales'])} | Collections: ${currencyFormat.format(agent['collected'])}"),
                                 style: TextStyle(color: isDark ? Colors.white70 : Colors.black54, fontSize: 12)),
                             LinearProgressIndicator(
                               value: achievementPercent,
@@ -524,13 +527,13 @@ double totalCompanyTarget = userSnap.data!.docs.fold(0.0, (sum, doc) {
                               color: achievementPercent >= 1 ? Colors.green : Colors.orange,
                               borderRadius: BorderRadius.circular(3),
                             ),
-                            Text("التحقيق: ${(achievementPercent * 100).toStringAsFixed(1)}%",
+                            Text(Translate.text(context, "التحقيق: ${(achievementPercent * 100).toStringAsFixed(1)}%", "Achievement: ${(achievementPercent * 100).toStringAsFixed(1)}%"),
                                 style: TextStyle(color: isDark ? Colors.white54 : Colors.black45, fontSize: 10)),
                             commission > 0
-                                ? Text("عمولة: ${currencyFormat.format(commission)}",
+                                ? Text(Translate.text(context, "عمولة: ${currencyFormat.format(commission)}", "Commission: ${currencyFormat.format(commission)}"),
                                     style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12))
-                                : const Text("لم يحقق شرط العمولة",
-                                    style: TextStyle(color: Colors.redAccent, fontSize: 10)),
+                                : Text(Translate.text(context, "لم يحقق شرط العمولة", "No Commission Achieved"),
+                                    style: const TextStyle(color: Colors.redAccent, fontSize: 10)),
                           ],
                         ),
                         trailing: IconButton(
@@ -579,7 +582,7 @@ void _openAgentSettingsSheet(BuildContext context, String agentId, Map<String, d
           const SizedBox(height: 20),
           
           Text(
-            "تحديث أهداف: ${agentData['username'] ?? 'المندوب'}",
+            Translate.text(context, "تحديث أهداف: ${agentData['username'] ?? 'المندوب'}", "Update Targets: ${agentData['username'] ?? 'Sales Agent'}"),
             style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 25),
@@ -587,8 +590,8 @@ void _openAgentSettingsSheet(BuildContext context, String agentId, Map<String, d
           // 1. حقل التارجت
           _buildSettingsInput(
             controller: targetController,
-            label: "تارجت المبيعات (ج.م)",
-            hint: "مثلاً: 500000",
+            label: Translate.text(context, "تارجت المبيعات (ج.م)", "Sales Target (EGP)"),
+            hint: Translate.text(context, "مثلاً: 500000", "Example: 500000"),
             icon: Icons.track_changes_rounded,
             color: Colors.blueAccent,
           ),
@@ -596,8 +599,8 @@ void _openAgentSettingsSheet(BuildContext context, String agentId, Map<String, d
           // 2. حقل نسبة العمولة
           _buildSettingsInput(
             controller: commissionRateController,
-            label: "نسبة العمولة (0.01 تعني 1%)",
-            hint: "ادخل القيمة العشرية",
+            label: Translate.text(context, "نسبة العمولة (0.01 تعني 1%)", "Commission Rate (0.01 means 1%)"),
+            hint: Translate.text(context, "ادخل القيمة العشرية", "Enter the decimal value"),
             icon: Icons.percent_rounded,
             color: Colors.greenAccent,
             isDecimal: true,
@@ -606,8 +609,8 @@ void _openAgentSettingsSheet(BuildContext context, String agentId, Map<String, d
           // 3. حقل شرط تحقيق التارجت
           _buildSettingsInput(
             controller: minAchievementController,
-            label: "شرط تفعيل العمولة (0.80 تعني 80%)",
-            hint: "أدنى نسبة تحقيق ليأخذ المندوب عمولته",
+            label: Translate.text(context, "شرط تفعيل العمولة (0.80 تعني 80%)", "Commission Activation Threshold (0.80 means 80%)"),
+            hint: Translate.text(context, "أدنى نسبة تحقيق ليأخذ المندوب عمولته", "Minimum achievement percentage for commission eligibility"),
             icon: Icons.verified_user_rounded,
             color: Colors.orangeAccent,
             isDecimal: true,
@@ -634,16 +637,16 @@ void _openAgentSettingsSheet(BuildContext context, String agentId, Map<String, d
               if (context.mounted) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("✅ تم حفظ التعديلات وتحديث نظام العمولات"),
+                  SnackBar(
+                    content: Text(Translate.text(context, "✅ تم حفظ التعديلات وتحديث نظام العمولات", "✅ Changes saved and commission system updated")),
                     backgroundColor: Colors.green,
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
               }
             },
-            child: const Text("حفظ وتطبيق الإعدادات", 
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            child: Text(Translate.text(context, "حفظ وتطبيق الإعدادات", "Save and Apply Settings"),
+              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -690,17 +693,19 @@ Widget _buildSettingsInput({
   // 3. تبويب البث المباشر (Live Feed)
   // ===========================================================================
 Widget _buildLiveOrdersFeed(bool isDark) {
+  final plainFormat = NumberFormat('#,##0.00'); 
   return StreamBuilder<QuerySnapshot>(
     // البحث في جميع كولكشنز transactions الفرعية في السيستم كله
+    
     stream: FirebaseFirestore.instance
-        .collectionGroup('transactions') 
+        .collection('global_transactions') 
         .where('type', isEqualTo: 'invoice') // نجيب الفواتير بس
         .orderBy('date', descending: true)   // الترتيب حسب التاريخ (تأكد أن الحقل اسمه date عندك)
         .limit(50)
         .snapshots(),
     builder: (context, snapshot) {
       if (snapshot.hasError) {
-        return Center(child: Text("حدث خطأ: تأكد من عمل Index في Firebase"));
+        return Center(child: Text(Translate.text(context, "حدث خطأ: تأكد من عمل Index في Firebase", "Error: Make sure Firebase Index is set up properly")));
       }
       if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
       if (snapshot.data!.docs.isEmpty) {
@@ -710,7 +715,7 @@ Widget _buildLiveOrdersFeed(bool isDark) {
             children: [
               Icon(Icons.history_toggle_off, size: 50, color: Colors.grey),
               const SizedBox(height: 10),
-              Text("لا توجد مبيعات مسجلة حتى الآن", style: TextStyle(color: Colors.grey))
+              Text(Translate.text(context, "لا توجد مبيعات مسجلة حتى الآن", "No sales recorded yet"), style: TextStyle(color: Colors.grey))
             ]
           )
         );
@@ -767,7 +772,7 @@ Widget _buildLiveOrdersFeed(bool isDark) {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "المندوب: ${data['agentName'] ?? 'غير محدد'}", 
+                      Translate.text(context, "المندوب: ${data['agentName'] ?? 'غير محدد'}", "Agent: ${data['agentName'] ?? 'Not Specified'}"), 
                       style: TextStyle(color: isDark ? Colors.white70 : Colors.black54, fontSize: 13)
                     ),
                     const SizedBox(height: 2),
@@ -788,25 +793,261 @@ Widget _buildLiveOrdersFeed(bool isDark) {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    currencyFormat.format(data['amount'] ?? 0), 
-                    style: TextStyle(
-                      color: isDark ? Colors.greenAccent : Colors.green.shade700, 
-                      fontWeight: FontWeight.bold, 
-                      fontSize: 17
-                    )
-                  ),
+              // 1. عرف المنسق للرقم فقط (بدون عملة)
+
+
+// 2. استخدم السطر ده في الـ UI
+Text(
+  // الرقم المفرمط + مسافة + الترجمة المظبوطة (واحدة بس اللي هتظهر)
+  "${plainFormat.format(data['amount'] ?? 0)} ${Translate.text(context, 'ج.م', 'EGP')}", 
+  style: TextStyle(
+    color: isDark ? Colors.greenAccent : Colors.green.shade700, 
+    fontWeight: FontWeight.bold, 
+    fontSize: 17
+  )
+),
                   const Icon(Icons.arrow_forward_ios, size: 12, color: Colors.grey),
                 ],
               ),
               onTap: () {
-                // هنا ممكن تفتح تفاصيل الفاتورة لو حبيت
-              },
+_showInvoiceDetails(context, data, isDark, plainFormat);              },
             ),
           );
         },
       );
     },
+  );
+}
+void _showInvoiceDetails(BuildContext context, Map<String, dynamic> data, bool isDark, NumberFormat plainFormat) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true, // عشان لو البيانات كتير تاخد راحتها
+    backgroundColor: Colors.transparent, // عشان نعمل حواف مدورة براحتنا
+    builder: (context) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xff0f172a) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(25)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // تاخد مساحة البيانات بس
+          children: [
+            // علامة السحب فوق
+            Container(width: 50, height: 5, decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(10))),
+            const SizedBox(height: 20),
+            
+            // عنوان النافذة
+            Text(
+              Translate.text(context, "تفاصيل الفاتورة", "Invoice Details"),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black),
+            ),
+            const Divider(height: 30),
+
+            // عرض البيانات في صفوف
+            _buildDetailRow(context, isDark, Translate.text(context, "اسم العميل", "Customer"), data['customerName'] ?? "---"),
+            _buildDetailRow(context, isDark, Translate.text(context, "المندوب", "Agent"), data['agentName'] ?? "---"),
+            _buildDetailRow(context, isDark, Translate.text(context, "التاريخ", "Date"), 
+              data['date'] != null ? DateFormat('yyyy/MM/dd - hh:mm a').format((data['date'] as Timestamp).toDate()) : "---"),
+            
+            const SizedBox(height: 10),
+            
+            // المبلغ الإجمالي بستايل مميز
+            Container(
+              padding: const EdgeInsets.all(15),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(Translate.text(context, "إجمالي المبلغ", "Total Amount"), 
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    "${plainFormat.format(data['amount'] ?? 0)} ${Translate.text(context, 'ج.م', 'EGP')}",
+                    style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                ],
+              ),
+            ),
+            // --- قسم الأصناف ---
+const SizedBox(height: 15),
+Align(
+  // alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
+  child: Text(
+    Translate.text(context, "الأصناف:", "Items:"),
+    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+  ),
+),
+const SizedBox(height: 10),
+
+// عرض قائمة الأصناف
+Container(
+  decoration: BoxDecoration(
+    color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[100],
+    borderRadius: BorderRadius.circular(12),
+  ),
+  child: Column(
+    children: [
+      // رأس الجدول
+      _buildItemHeader(context, isDark),
+      const Divider(height: 1),
+      
+      // التأكد من وجود أصناف في البيانات
+if (data['items'] != null && (data['items'] as List).isNotEmpty)
+  ...(data['items'] as List).map((item) {
+    return _buildItemRow(
+      context, 
+      isDark, 
+item['productName'] ?? "---", 
+  item['category'] ?? "---", 
+  item['subCategory'] ?? "---", 
+  item['qty']?.toString() ?? "0",
+  item['price']?.toString() ?? "0" // 👈 ضيف السطر ده هنا
+    );
+  }).toList()
+      else
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: Text(Translate.text(context, "لا توجد أصناف", "No items found")),
+        ),
+    ],
+  ),
+),
+const SizedBox(height: 20),
+            const SizedBox(height: 30),
+            
+            // زرار الإغلاق
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                ),
+                
+                onPressed: () => Navigator.pop(context),
+                child: Text(Translate.text(context, "إغلاق", "Close"), style: const TextStyle(color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+// دالة لرسم رأس الجدول (اسم - كمية - سعر)
+Widget _buildItemHeader(BuildContext context, bool isDark) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    child: Row(
+      children: [
+        Expanded(flex: 1, child: Text(Translate.text(context, "الصنف", "Item"), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+        Expanded(flex: 1, child: Text(Translate.text(context, "التصنيف", "Category"), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+        Expanded(flex: 1, child: Text(Translate.text(context, "الكمية", "Qty"), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+        Expanded(flex: 1, child: Text(Translate.text(context, "السعر", "Price"), textAlign: TextAlign.end, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+      ],
+    ),
+  );
+}
+
+// دالة لرسم سطر كل صنف
+Widget _buildItemRow(BuildContext context, bool isDark, String name, String cat, String subCat, String qty, String price) {
+  return Container(
+    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[50],
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
+    ),
+    child: Row(
+      children: [
+
+        // 2. تفاصيل الصنف (الاسم والتصنيفات)
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+              ),
+             
+            ],
+          ),
+        ),
+        Expanded(
+           child:
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+
+              Text(
+                "$cat - $subCat",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.white60 : Colors.black54,
+                ),
+              ),
+            ],
+          ),
+        ),
+        // 3. الكمية وسعر القطعة
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // كبسولة الكمية
+              Text(
+                 qty,
+                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // كبسولة الكمية
+              Text(
+                 "$price ${Translate.text(context, 'ج.م', 'EGP')}",
+                 style: const TextStyle(
+                   color: Colors.green,
+                   fontWeight: FontWeight.bold,
+                   fontSize: 13,
+                 ),
+               ),
+
+            ],
+          ),
+        ),
+            // سعر القطعة
+
+          ],
+        ),
+      );
+}
+      
+
+// دالة مساعدة لرسم صف البيانات
+Widget _buildDetailRow(BuildContext context, bool isDark, String label, String value) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8.0),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+        Text(value, style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black, fontSize: 14)),
+      ],
+    ),
   );
 }
 

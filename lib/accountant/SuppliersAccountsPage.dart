@@ -1,3 +1,4 @@
+import 'package:aiom/configer/settingPage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'supplier_statement_page.dart';
@@ -85,7 +86,7 @@ class SuppliersDashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("إدارة الموردين والمشتريات"),
+        title: Text(Translate.text(context, "إدارة الموردين والمشتريات", "Manage Suppliers and Purchases")),
         backgroundColor: const Color(0xff134e4a),
       ),
       body: Column(
@@ -110,7 +111,7 @@ class SuppliersDashboard extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text("إجمالي مديونية الموردين:", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text(Translate.text(context, "إجمالي مديونية الموردين:", "Total Supplier Debt"), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     Text("$totalDebt ج.م", style: const TextStyle(fontSize: 20, color: Colors.red, fontWeight: FontWeight.bold)),
                   ],
                 ),
@@ -126,7 +127,7 @@ class SuppliersDashboard extends StatelessWidget {
                 if (!snap.hasData) return const Center(child: CircularProgressIndicator());
                 
                 if (snap.data!.docs.isEmpty) {
-                   return const Center(child: Text("لا يوجد موردين، أضف أول مورد"));
+                   return  Center(child: Text(Translate.text(context, "لا يوجد موردين، أضف أول مورد", "No suppliers available, add the first supplier")));
                 }
 
                 return ListView.builder(
@@ -140,13 +141,13 @@ class SuppliersDashboard extends StatelessWidget {
                       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       child: ListTile(
                         leading: const CircleAvatar(backgroundColor: Color(0xff134e4a), child: Icon(Icons.business, color: Colors.white)),
-                        title: Text(data['name'] ?? "مورد بدون اسم", style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text("رقم الهاتف: ${data['phone'] ?? 'غير مسجل'}"),
+                        title: Text(data['name'] ?? Translate.text(context, "مورد بدون اسم", "Supplier without name"), style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text(Translate.text(context, "رقم الهاتف: ${data['phone'] ?? 'غير مسجل'}", "Phone Number: ${data['phone'] ?? 'Not Registered'}")),
                         trailing: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            const Text("الرصيد", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                            Text(Translate.text(context, "الرصيد", "Balance"), style: TextStyle(fontSize: 12, color: Colors.grey)),
                             Text("$balance ج.م", style: TextStyle(
                               color: balance > 0 ? Colors.red : Colors.green,
                               fontWeight: FontWeight.bold

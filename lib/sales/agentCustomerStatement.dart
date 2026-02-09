@@ -1,3 +1,4 @@
+import 'package:aiom/configer/settingPage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pdf/pdf.dart';
@@ -61,14 +62,14 @@ class _AgentcustomerstatementState extends State<Agentcustomerstatement> {
           textDirection: pw.TextDirection.rtl,
           child: pw.Column(
             children: [
-              pw.Text(type == 'invoice' ? "فاتورة مبيعات" : "سند قبض", 
+              pw.Text(type == 'invoice' ? Translate.text(context as BuildContext, "فاتورة مبيعات", "Sales Invoice") : Translate.text(context as BuildContext, "سند قبض", "Receipt"), 
                 style: pw.TextStyle(font: ttf, fontSize: 25, fontWeight: pw.FontWeight.bold)),
               pw.Divider(),
               
               // بيانات العميل
               pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-                pw.Text("العميل: $selectedCustomerName", style: pw.TextStyle(font: ttf)),
-                pw.Text("التاريخ: ${data['date']?.toDate().toString().substring(0,16)}", style: pw.TextStyle(font: ttf)),
+                pw.Text(Translate.text(context as BuildContext, "العميل: $selectedCustomerName", "Customer: $selectedCustomerName"), style: pw.TextStyle(font: ttf)),
+                pw.Text(Translate.text(context as BuildContext, "التاريخ: ${data['date']?.toDate().toString().substring(0,16)}", "Date: ${data['date']?.toDate().toString().substring(0,16)}"), style: pw.TextStyle(font: ttf)),
               ]),
               pw.SizedBox(height: 20),
 
@@ -88,12 +89,18 @@ if (type == 'invoice')
       3: const pw.FlexColumnWidth(1.5), // السعر (أضفنا خانة السعر عشان يملأ العرض)
       4: const pw.FlexColumnWidth(2), // الإجمالي
     },
-    headers: ['الصنف', 'التصنيف / الفرعي', 'الكمية', 'السعر', 'الإجمالي'],
+    headers: [
+      Translate.text(context as BuildContext, "الصنف", "Product Name"),
+      Translate.text(context as BuildContext, "التصنيف / الفرعي", "Category / Subcategory"),
+      Translate.text(context as BuildContext, "الكمية", "Quantity"),
+      Translate.text(context as BuildContext, "السعر", "Price"),
+      Translate.text(context as BuildContext, "الإجمالي", "Total"),
+    ],
     data: (data['items'] as List).map((item) {
       // معالجة البيانات الناقصة بذكاء
-      String name = item['name'] ?? item['productName'] ?? 'صنف غير مسمى';
-      String cat = (item['category'] != null && item['category'] != "") ? item['category'] : "عام";
-      String sub = (item['subCategory'] != null && item['subCategory'] != "") ? item['subCategory'] : "افتراضي";
+      String name = item['name'] ?? item['productName'] ?? Translate.text(context as BuildContext, "صنف غير مسمى", "Unnamed Product");
+      String cat = (item['category'] != null && item['category'] != "") ? item['category'] : Translate.text(context as BuildContext, "عام", "General");
+      String sub = (item['subCategory'] != null && item['subCategory'] != "") ? item['subCategory'] : Translate.text(context as BuildContext, "افتراضي", "Default");
       
       return [
         name,
@@ -119,14 +126,14 @@ else
         pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
-            pw.Text("وصلنا من السيد: $selectedCustomerName", style: pw.TextStyle(font: ttf, fontSize: 14)),
-            pw.Text("مبلغ وقدره: ${data['amount']} ج.م", style: pw.TextStyle(font: ttf, fontSize: 14, fontWeight: pw.FontWeight.bold)),
+            pw.Text(Translate.text(context as BuildContext, "وصلنا من السيد: $selectedCustomerName", "Received from Mr. $selectedCustomerName"), style: pw.TextStyle(font: ttf, fontSize: 14)),
+            pw.Text(Translate.text(context as BuildContext, "مبلغ وقدره: ${data['amount']} ج.م", "Amount: ${data['amount']} EGP"), style: pw.TextStyle(font: ttf, fontSize: 14, fontWeight: pw.FontWeight.bold)),
           ],
         ),
         pw.SizedBox(height: 10),
         pw.Divider(color: PdfColors.blueGrey),
         pw.SizedBox(height: 10),
-        pw.Text("وذلك عن: ${data['details'] ?? 'سند قبض نقدي لسيادتكم'}", 
+        pw.Text(Translate.text(context as BuildContext, "وذلك عن: ${data['details'] ?? 'سند قبض نقدي لسيادتكم'}", "This is a cash receipt for Mr. $selectedCustomerName"), 
           style: pw.TextStyle(font: ttf, fontSize: 13, color: PdfColors.grey700)),
       ],
     ),
@@ -145,7 +152,7 @@ pw.Align(
     child: pw.Row(
       mainAxisSize: pw.MainAxisSize.min,
       children: [
-        pw.Text("الإجمالي المطلوب: ", style: pw.TextStyle(font: ttf, fontSize: 14)),
+        pw.Text(Translate.text(context as BuildContext, "الإجمالي المطلوب: ", "Total Amount: "), style: pw.TextStyle(font: ttf, fontSize: 14)),
         pw.Text("${data['amount']} ج.م", 
           style: pw.TextStyle(font: ttf, fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
       ],
@@ -198,7 +205,7 @@ pw.Align(
 
       tableData.add([
         (d['date'] as Timestamp).toDate().toString().substring(0, 10), // التاريخ
-        isInvoice ? 'فاتورة' : 'سند قبض', // النوع
+        isInvoice ? Translate.text(context as BuildContext, "فاتورة", "Invoice") : Translate.text(context as BuildContext, "سند قبض", "Cash Receipt"), // النوع
         d['details'] ?? '-', // البيان
         isInvoice ? amount.toStringAsFixed(1) : "", // مدين (عليه)
         !isInvoice ? amount.toStringAsFixed(1) : "", // دائن (له)
@@ -214,7 +221,7 @@ pw.Align(
       theme: pw.ThemeData.withFont(base: ttf),
       textDirection: pw.TextDirection.rtl,
       build: (pw.Context context) => [
-        pw.Header(level: 0, child: pw.Text("كشف حساب تفصيلي: $selectedCustomerName", style: pw.TextStyle(font: ttf, fontSize: 18))),
+        pw.Header(level: 0, child: pw.Text(Translate.text(context as BuildContext, "كشف حساب تفصيلي: $selectedCustomerName", "Detailed Account Statement for $selectedCustomerName"), style: pw.TextStyle(font: ttf, fontSize: 18))),
         
         pw.TableHelper.fromTextArray(
           context: context,
@@ -222,7 +229,14 @@ pw.Align(
           headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey800),
           cellStyle: pw.TextStyle(font: ttf, fontSize: 9),
           // العناوين الجديدة للجدول
-          headers: ['التاريخ', 'النوع', 'البيان', 'مدين (+)', 'دائن (-)', 'الرصيد'],
+          headers: [
+            Translate.text(context as BuildContext, "التاريخ", "Date"),
+            Translate.text(context as BuildContext, "النوع", "Type"),
+            Translate.text(context as BuildContext, "البيان", "Details"),
+            Translate.text(context as BuildContext, "مدين (+)", "Debit (+)"),
+            Translate.text(context as BuildContext, "دائن (-)", "Credit (-)"),
+            Translate.text(context as BuildContext, "الرصيد", "Balance")
+          ],
           data: tableData,
           columnWidths: {
             0: const pw.FlexColumnWidth(2), // التاريخ
@@ -238,7 +252,7 @@ pw.Align(
         pw.Container(
           alignment: pw.Alignment.centerLeft,
           child: pw.Text(
-            "صافي المديونية النهائية: ${runningBalance.toStringAsFixed(2)} ج.م",
+            Translate.text(context as BuildContext, "صافي المديونية النهائية: ${runningBalance.toStringAsFixed(2)} ج.م", "Final Net Liability: ${runningBalance.toStringAsFixed(2)} EGP"),
             style: pw.TextStyle(font: ttf, fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.red900)
           ),
         )
@@ -273,7 +287,7 @@ pw.Align(
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(data['type'] == 'invoice' ? "تفاصيل الفاتورة" : "تفاصيل السند", 
+                    Text(data['type'] == 'invoice' ? Translate.text(context, "تفاصيل الفاتورة", "Invoice Details") : Translate.text(context, "تفاصيل السند", "Receipt Details"), 
                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
                     IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
                   ],
@@ -300,8 +314,8 @@ pw.Align(
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text("تصنيف: ${catData['cat']} - ${catData['sub']}"),
-                                    Text("عدد: ${item['qty']}  ×  سعر: ${item['price']}", style: const TextStyle(color: Colors.green)),
+                                    Text(Translate.text(context, "تصنيف: ${catData['cat']} - ${catData['sub']}", "Category: ${catData['cat']} - ${catData['sub']}")),
+                                    Text(Translate.text(context, "عدد: ${item['qty']}  ×  سعر: ${item['price']}", "Quantity: ${item['qty']}  ×  Price: ${item['price']}"), style: const TextStyle(color: Colors.green)),
                                   ],
                                 ),
                                 trailing: Text("${item['total']} ج.م", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue[800])),
@@ -317,9 +331,9 @@ pw.Align(
                         children: [
                           const Icon(Icons.monetization_on, size: 80, color: Colors.green),
                           const SizedBox(height: 20),
-                          Text("${data['amount']} ج.م", style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
+                          Text(Translate.text(context, "${data['amount']} ج.م", "${data['amount']} EGP"), style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 10),
-                          Text(data['details'] ?? "لا يوجد تفاصيل", style: const TextStyle(fontSize: 18)),
+                          Text(Translate.text(context, data['details'] ?? "لا يوجد تفاصيل", "No details available"), style: const TextStyle(fontSize: 18)),
                         ],
                       ),
                     ),
@@ -342,7 +356,7 @@ pw.Align(
                       _printSingleTransaction(doc); // اطبع المستند اللي في إيدك ده "فوراً"
                     },
                     icon: const Icon(Icons.print),
-                    label: const Text("طباعة هذا المستند", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    label: Text(Translate.text(context, "طباعة هذا المستند", "Print this document"), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   ),
                 )
               ],
@@ -356,7 +370,7 @@ pw.Align(
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("حسابات العملاء"), centerTitle: true),
+      appBar: AppBar(title:  Text(Translate.text(context, "حسابات العملاء", "Customer Accounts")), centerTitle: true),
       body: Column(
         children: [
           // 1. اختيار العميل
@@ -368,7 +382,7 @@ pw.Align(
                 if (!snapshot.hasData) return const LinearProgressIndicator();
                 return DropdownButtonFormField<String>(
                   decoration: InputDecoration(
-                    labelText: "اختر العميل", 
+                    labelText: Translate.text(context, "اختر العميل", "Select Customer"), 
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                     prefixIcon: const Icon(Icons.person_search),
                     filled: true, fillColor: Colors.blue[50]
@@ -404,9 +418,9 @@ pw.Align(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        const Text("إجمالي المديونية", style: TextStyle(color: Colors.white70, fontSize: 14)),
+                         Text(Translate.text(context, "إجمالي المديونية", "Total Debt"), style: TextStyle(color: Colors.white70, fontSize: 14)),
                         const SizedBox(height: 5),
-                        Text("${totalBalance.toStringAsFixed(2)} ج.م", style: const TextStyle(color: Color(0xFF2ECC71), fontSize: 24, fontWeight: FontWeight.bold)),
+                        Text("${Translate.text(context, "${totalBalance.toStringAsFixed(2)} ج.م", "${totalBalance.toStringAsFixed(2)} EGP")}", style: const TextStyle(color: Color(0xFF2ECC71), fontSize: 24, fontWeight: FontWeight.bold)),
                       ]),
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
@@ -416,7 +430,7 @@ pw.Align(
                         ),
                         onPressed: _printStatementDirectly, // الزر أصبح ينادي الدالة المباشرة
                         icon: const Icon(Icons.receipt_long),
-                        label: const Text("كشف حساب"),
+                        label: Text(Translate.text(context, "كشف حساب", "Account Statement")),
                       )
                     ],
                   ),
@@ -431,7 +445,7 @@ pw.Align(
                 controller: searchController,
                 onChanged: (val) => setState(() => searchQuery = val),
                 decoration: InputDecoration(
-                  hintText: "بحث في حركات العميل (رقم، مبلغ، تفاصيل)...",
+                  hintText: Translate.text(context, "بحث في حركات العميل (رقم، مبلغ، تفاصيل)...", "Search in customer transactions (number, amount, details)..."),
                   prefixIcon: const Icon(Icons.search),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
                   filled: true,
@@ -447,7 +461,7 @@ pw.Align(
             child: selectedCustomerId == null 
             ? Center(child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [Icon(Icons.people_alt, size: 60, color: Colors.grey), SizedBox(height: 10), Text("الرجاء اختيار عميل")],
+                children:  [Icon(Icons.people_alt, size: 60, color: Colors.grey), SizedBox(height: 10), Text(Translate.text(context, "الرجاء اختيار عميل", "Please select a customer"))],
               ))
             : StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance.collection('customers').doc(selectedCustomerId).collection('transactions').orderBy('date', descending: true).snapshots(),
@@ -483,7 +497,8 @@ WidgetsBinding.instance.addPostFrameCallback((_) {
   }
   if ((totalBalance - sum).abs() > 0.1) setState(() => totalBalance = sum);
 });
-                  if (filteredDocs.isEmpty) return const Center(child: Text("لا توجد حركات تطابق بحثك"));
+                  if (filteredDocs.isEmpty) return 
+                   Center(child: Text(Translate.text(context, "لا توجد حركات تطابق بحثك", "No transactions match your search")));
 
                   return ListView.builder(
                     padding: const EdgeInsets.only(top: 5, bottom: 20),
@@ -507,7 +522,7 @@ WidgetsBinding.instance.addPostFrameCallback((_) {
                             ),
                           ),
                           title: Text(
-                            isCancelled ? "ملغاة - ${data['details']}" : (data['details'] ?? (isInvoice ? "فاتورة مبيعات" : "سند قبض")),
+                            isCancelled ? Translate.text(context, "ملغاة - ${data['details']}", "Cancelled - ${data['details']}") : (data['details'] ?? (isInvoice ? Translate.text(context, "فاتورة مبيعات", "Sales Invoice") : Translate.text(context, "سند قبض", "Payment Receipt"))),
                             style: TextStyle(
                               decoration: isCancelled ? TextDecoration.lineThrough : null,
                               color: isCancelled ? Colors.grey : Colors.black
@@ -518,7 +533,7 @@ WidgetsBinding.instance.addPostFrameCallback((_) {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                "${data['amount']} ج.م", 
+                                Translate.text(context, "${data['amount']} ج.م", "${data['amount']} EGP"), 
                                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: isCancelled ? Colors.grey : Colors.black)
                               ),
                               const SizedBox(width: 8),

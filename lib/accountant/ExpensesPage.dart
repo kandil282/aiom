@@ -1,4 +1,5 @@
 import 'package:aiom/accountant/DetailedVaultReport.dart';
+import 'package:aiom/configer/settingPage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart' as intl;
@@ -39,7 +40,7 @@ String? selectedEmployeeName;
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text("إدارة الخزنة والشيكات"),
+        title:  Text(Translate.text(context, "إدارة الخزنة والشيكات", "Manage Vault and Checks")),
         backgroundColor: isDark ? theme.cardColor : const Color(0xff1e3a8a), // لون أزرق بنكي
         elevation: 0,
         bottom: TabBar(
@@ -47,10 +48,10 @@ String? selectedEmployeeName;
           indicatorColor: Colors.orange,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.grey[400],
-          tabs: const [
-            Tab(icon: Icon(Icons.account_balance_wallet), text: "الخزنة والحركة"),
-            Tab(icon: Icon(Icons.receipt_long), text: "الشيكات"),
-            Tab(icon: Icon(Icons.fact_check), text: "جرد العهدة"),
+          tabs:  [
+            Tab(icon: Icon(Icons.account_balance_wallet), text: Translate.text(context, "الخزنة والحركة", "Vault and Transactions")),
+            Tab(icon: Icon(Icons.receipt_long), text: Translate.text(context, "الشيكات", "Checks")),
+            Tab(icon: Icon(Icons.fact_check), text: Translate.text(context, "جرد العهدة", "Audit Section")),
           ],
         ),
       ),
@@ -103,20 +104,20 @@ Widget _buildVaultOverview(ThemeData theme) {
                 children: [
                   // أضف هذا الزر قبل الـ StreamBuilder الخاص بالسجل
 
-                  const Text("الرصيد الحالي في الخزنة", style: TextStyle(color: Colors.white70, fontSize: 16)),
+                   Text(Translate.text(context, "الرصيد الحالي في الخزنة", "Current Vault Balance"), style: TextStyle(color: Colors.white70, fontSize: 16)),
                   const SizedBox(height: 12),
                   Text(
-                    "${intl.NumberFormat('#,##0.00').format(balance)} ج.م",
+                    "${Translate.text(context, "${intl.NumberFormat('#,##0.00').format(balance)} ج.م", "${intl.NumberFormat('#,##0.00').format(balance)} EGP")}",
                     style: const TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.bold, letterSpacing: 1),
                   ),
                                       Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text("آخر الحركات", style: TextStyle(fontSize: 18, color: Colors.white)),
+                        Text(Translate.text(context, "آخر الحركات", "Recent Transactions"), style: TextStyle(fontSize: 18, color: Colors.white)),
                         TextButton.icon(
                           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const DetailedVaultReport())),
                           icon: const Icon(Icons.analytics, color: Colors.amber),
-                          label: const Text("فتح السجل الكامل / كشف حساب", style: TextStyle(color: Colors.amber)),
+                          label: Text(Translate.text(context, "فتح السجل الكامل / كشف حساب", "Open Full Report / Statement"), style: TextStyle(color: Colors.amber)),
                         ),
                       ],
                     ),
@@ -133,14 +134,14 @@ Widget _buildVaultOverview(ThemeData theme) {
         // أزرار العمليات السريعة
         Row(
           children: [
-            Expanded(child: _buildActionButton(theme, "تسجيل مصروف", Icons.upload_rounded, Colors.redAccent, () => _showTransactionDialog(false))),
+            Expanded(child: _buildActionButton(theme, Translate.text(context, "تسجيل مصروف", "Register Expense"), Icons.upload_rounded, Colors.redAccent, () => _showTransactionDialog(false))),
             const SizedBox(width: 15),
-            Expanded(child: _buildActionButton(theme, "إيداع نقدية", Icons.download_rounded, Colors.greenAccent, () => _showTransactionDialog(true))),
+            Expanded(child: _buildActionButton(theme, Translate.text(context, "إيداع نقدية", "Cash Deposit"), Icons.download_rounded, Colors.greenAccent, () => _showTransactionDialog(true))),
           ],
         ),
 
         const SizedBox(height: 30),
-        const Text("سجل الحركات المالية", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+        Text(Translate.text(context, "سجل الحركات المالية", "Financial Transactions History"), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
         const SizedBox(height: 15),
 
         // سجل الحركات المطور
@@ -178,14 +179,14 @@ Widget _buildVaultOverview(ThemeData theme) {
                     ),
                     // 1. العنوان الرئيسي: الوصف أو اسم العميل/الموظف
                     title: Text(
-                      data['description'] ?? "بدون وصف",
+                      data['description'] ?? Translate.text(context, "بدون وصف", "No Description"),
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                     // 2. العنوان الفرعي: التاريخ + (إضافة اسم المندوب إذا وجد)
                     subtitle: Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        "${intl.DateFormat('yyyy-MM-dd | hh:mm a').format(data['date'].toDate())}\n${data['agentName'] ?? 'الإدارة'}",
+                        "${intl.DateFormat('yyyy-MM-dd | hh:mm a').format(data['date'].toDate())}\n${data['agentName'] ?? Translate.text(context, "الإدارة", "Administration")}",
                         style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
                       ),
                     ),
@@ -203,7 +204,7 @@ Widget _buildVaultOverview(ThemeData theme) {
                           ),
                         ),
                         Text(
-                          isIncome ? "إيداع" : "سحب",
+                          isIncome ? Translate.text(context, "إيداع", "Deposit") : Translate.text(context, "سحب", "Withdrawal"),
                           style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 10),
                         ),
                       ],
@@ -237,7 +238,7 @@ Widget _buildChecksManager(ThemeData theme) {
             return const Center(child: CircularProgressIndicator());
           }
           if (!snap.hasData || snap.data!.docs.isEmpty) {
-            return const Center(child: Text("لا توجد شيكات مسجلة"));
+            return  Center(child: Text(Translate.text(context, "لا توجد شيكات مسجلة", "No Registered Checks")));
           }
 
           return ListView.builder(
@@ -260,15 +261,15 @@ Widget _buildChecksManager(ThemeData theme) {
                   ),
                   // عرض اسم العميل بشكل واضح في البداية
                   title: Text(
-                    data['customerName'] ?? "عميل غير معروف", 
+                    data['customerName'] ?? Translate.text(context, "عميل غير معروف", "Unknown Customer"), 
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("رقم الشيك: ${data['checkNumber']}"),
-                      Text("المبلغ: ${data['amount']} ج.م", style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.w600)),
-                      Text("تاريخ الاستحقاق: ${intl.DateFormat('yyyy-MM-dd').format(data['dueDate'].toDate())}"),
+                      Text(Translate.text(context, "رقم الشيك: ${data['checkNumber']}", "Check Number: ${data['checkNumber']}")),
+                      Text(Translate.text(context, "المبلغ: ${data['amount']} ج.م", "Amount: ${data['amount']} EGP"), style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.w600)),
+                      Text(Translate.text(context, "تاريخ الاستحقاق: ${intl.DateFormat('yyyy-MM-dd').format(data['dueDate'].toDate())}", "Due Date: ${intl.DateFormat('yyyy-MM-dd').format(data['dueDate'].toDate())}")),
                       const SizedBox(height: 4),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -277,7 +278,7 @@ Widget _buildChecksManager(ThemeData theme) {
                           borderRadius: BorderRadius.circular(5),
                         ),
                         child: Text(
-                          isCashed ? 'تم التحصيل' : 'تحت التحصيل',
+                          isCashed ? Translate.text(context, "تم التحصيل", "Collected") : Translate.text(context, "تحت التحصيل", "Under Collection"),
                           style: TextStyle(color: isCashed ? Colors.green[700] : Colors.orange[700], fontSize: 12, fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -286,14 +287,14 @@ Widget _buildChecksManager(ThemeData theme) {
                     trailing: !isCashed 
                       ? IconButton(
                           icon: const Icon(Icons.check_circle_outline, color: Colors.green, size: 35),
-                          tooltip: "ترحيل للحسابات والخزنة",
+                          tooltip: Translate.text(context, "ترحيل للحسابات والخزنة", "Transfer to Accounts and Cashier"),
                           onPressed: () async {
                             // إظهار رسالة تأكيد قبل الترحيل (أمان إضافي)
                             bool? confirm = await _showConfirmDialog();
                             if (confirm == true) {
                               await _processCheckCashing(doc.id, data);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("تم ترحيل الشيك للحسابات والخزنة بنجاح"))
+                                SnackBar(content: Text(Translate.text(context, "تم ترحيل الشيك للحسابات والخزنة بنجاح", "Check Successfully Transferred to Accounts and Cashier")))
                               );
                             }
                           },
@@ -313,7 +314,7 @@ Widget _buildChecksManager(ThemeData theme) {
           onPressed: _showAddCheckDialog,
           backgroundColor: Colors.orange[800],
           icon: const Icon(Icons.add_card),
-          label: const Text("إضافة شيك"),
+          label:  Text(Translate.text(context, "إضافة شيك", "Add Check")),
         ),
       ),
     ],
@@ -324,11 +325,11 @@ Widget _buildChecksManager(ThemeData theme) {
   return showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text("تأكيد التحصيل"),
-      content: const Text("هل أنت متأكد من تحصيل هذا الشيك؟ سيتم ترحيل المبلغ فوراً للخزنة وحساب العميل."),
+      title:  Text(Translate.text(ctx, "تأكيد التحصيل", "Confirm Collection")),
+      content:  Text(Translate.text(ctx, "هل أنت متأكد من تحصيل هذا الشيك؟ سيتم ترحيل المبلغ فوراً للخزنة وحساب العميل.", "Are you sure you want to collect this check? The amount will be transferred immediately to the vault and customer's account.")),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("إلغاء")),
-        ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("تأكيد")),
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child:  Text(Translate.text(ctx, "إلغاء", "Cancel"))),
+        ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child:  Text(Translate.text(ctx, "تأكيد", "Confirm"))),
       ],
     ),
   );
@@ -343,10 +344,10 @@ Widget _buildChecksManager(ThemeData theme) {
         children: [
           Icon(Icons.fact_check_outlined, size: 80, color: theme.hintColor),
           const SizedBox(height: 20),
-          const Text("جرد الخزنة الفعلي", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+           Text(Translate.text(context, "جرد الخزنة الفعلي", "Actual Vault Audit"), style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
           const SizedBox(height: 10),
-          const Text(
-            "أدخل المبلغ الموجود فعلياً في الدرج لمقارنته برصيد النظام.",
+           Text(
+            Translate.text(context, "أدخل المبلغ الموجود فعلياً في الدرج لمقارنته برصيد النظام.", "Enter the actual amount in the drawer to compare with system balance."),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 30),
@@ -362,7 +363,7 @@ Widget _buildChecksManager(ThemeData theme) {
                 children: [
                   Card(
                     child: ListTile(
-                      title: const Text("رصيد النظام (الدفتري)"),
+                      title: Text(Translate.text(context, "رصيد النظام (الدفتري)", "System Balance (Ledger)")),
                       trailing: Text("$sysBalance ج.م", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                     ),
                   ),
@@ -371,7 +372,7 @@ Widget _buildChecksManager(ThemeData theme) {
                     controller: _physicalCountController,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                      labelText: "الرصيد الفعلي (عد النقدية)",
+                      labelText: Translate.text(context, "الرصيد الفعلي (عد النقدية)", "Actual Balance (Cash Count)"),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
                       prefixIcon: const Icon(Icons.money),
                       filled: true,
@@ -385,7 +386,7 @@ Widget _buildChecksManager(ThemeData theme) {
                       backgroundColor: Colors.orange,
                       minimumSize: const Size(double.infinity, 50),
                     ),
-                    child: const Text("اعتماد الجرد وتسوية الفروقات", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: Text(Translate.text(context, "اعتماد الجرد وتسوية الفروقات", "Approve Audit and Settle Differences"), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
                 ],
               );
@@ -429,17 +430,17 @@ Widget _buildChecksManager(ThemeData theme) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(isIncome ? "إيداع نقدية" : "تسجيل مصروف"),
+        title: Text(isIncome ? Translate.text(ctx, "إيداع نقدية", "Cash Deposit") : Translate.text(ctx, "تسجيل مصروف", "Register Expense")),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: _descController, decoration: const InputDecoration(labelText: "البيان")),
+            TextField(controller: _descController, decoration:  InputDecoration(labelText: Translate.text(ctx, "البيان", "Description"))),
             const SizedBox(height: 10),
-            TextField(controller: _amountController, decoration: const InputDecoration(labelText: "المبلغ"), keyboardType: TextInputType.number),
+            TextField(controller: _amountController, decoration:  InputDecoration(labelText: Translate.text(ctx, "المبلغ", "Amount")), keyboardType: TextInputType.number),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("إلغاء")),
+          TextButton(onPressed: () => Navigator.pop(ctx), child:  Text(Translate.text(ctx, "إلغاء", "Cancel"))),
           ElevatedButton(
             onPressed: () {
               double val = double.tryParse(_amountController.text) ?? 0;
@@ -449,7 +450,7 @@ Widget _buildChecksManager(ThemeData theme) {
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: isIncome ? Colors.green : Colors.red),
-            child: const Text("تأكيد", style: TextStyle(color: Colors.white)),
+            child: Text(Translate.text(ctx, "تأكيد", "Confirm"), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -471,7 +472,7 @@ void _showAddCheckDialog() {
       builder: (context, setStateDialog) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text("تسجيل شيك جديد"),
+          title: Text(Translate.text(context, "تسجيل شيك جديد", "Register New Check")),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -483,7 +484,7 @@ void _showAddCheckDialog() {
                     if (!snap.hasData) return const CircularProgressIndicator();
                     
                     return DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(labelText: "اختر العميل", border: OutlineInputBorder()),
+                      decoration:  InputDecoration(labelText: Translate.text(context, "اختر العميل", "Select Customer"), border: OutlineInputBorder()),
                       items: snap.data!.docs.map((doc) {
                         var customerData = doc.data() as Map<String, dynamic>;
                         return DropdownMenuItem(
@@ -507,17 +508,17 @@ void _showAddCheckDialog() {
                 const SizedBox(height: 15),
                 TextField(
                   controller: numController, 
-                  decoration: const InputDecoration(labelText: "رقم الشيك", border: OutlineInputBorder())
+                  decoration:  InputDecoration(labelText: Translate.text(context, "رقم الشيك", "Check Number"), border: OutlineInputBorder())
                 ),
                 const SizedBox(height: 15),
                 TextField(
                   controller: amountController, 
                   keyboardType: TextInputType.number, 
-                  decoration: const InputDecoration(labelText: "قيمة الشيك", border: OutlineInputBorder())
+                  decoration:  InputDecoration(labelText: Translate.text(context, "قيمة الشيك", "Check Amount"), border: OutlineInputBorder())
                 ),
                 const SizedBox(height: 15),
                 ListTile(
-                  title: Text("تاريخ الاستحقاق: ${intl.DateFormat('yyyy-MM-dd').format(selectedDate)}"),
+                  title: Text(Translate.text(context, "تاريخ الاستحقاق: ${intl.DateFormat('yyyy-MM-dd').format(selectedDate)}", "Due Date: ${intl.DateFormat('yyyy-MM-dd').format(selectedDate)}")),
                   trailing: const Icon(Icons.calendar_month),
                   onTap: () async {
                     final picked = await showDatePicker(
@@ -533,7 +534,7 @@ void _showAddCheckDialog() {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("إلغاء")),
+            TextButton(onPressed: () => Navigator.pop(context), child:  Text(Translate.text(context, "إلغاء", "Cancel"))),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
               onPressed: () async {
@@ -554,7 +555,7 @@ void _showAddCheckDialog() {
                   'createdAt': FieldValue.serverTimestamp(),
                 });
               },
-              child: const Text("حفظ الشيك"),
+              child: Text(Translate.text(context, "حفظ الشيك", "Save Check")),
             ),
           ],
         );
@@ -583,7 +584,7 @@ Future<void> _processCheckCashing(String checkId, Map<String, dynamic> checkData
     'agentId': employeeId,
     'amount': amount,
     'date': FieldValue.serverTimestamp(),
-    'details': "تحصيل شيك رقم: $checkNum",
+    'details': Translate.text(context, "تحصيل شيك رقم: $checkNum", "Check Collection Number: $checkNum"),
     'receiptNo': "CH-$checkNum",
     'type': "payment", // عشان يطرح من المديونية في نظامك
   });
@@ -601,7 +602,7 @@ Future<void> _processCheckCashing(String checkId, Map<String, dynamic> checkData
   batch.set(firestore.collection('vault_transactions').doc(), {
     'amount': amount,
     'type': 'income',
-    'description': "تحصيل شيك عميل: ${checkData['customerName']}",
+    'description': Translate.text(context, "تحصيل شيك عميل: ${checkData['customerName']}", "Check Collection for Customer: ${checkData['customerName']}"),
     'date': FieldValue.serverTimestamp(),
   });
 
@@ -659,7 +660,7 @@ Future<void> _cashCheck(String checkId, double amount, String checkNum, String c
     batch.set(vaultTransRef, {
       'amount': amount,
       'type': 'income', // إيداع
-      'description': "تحصيل شيك رقم: $checkNum",
+      'description': Translate.text(context, "تحصيل شيك رقم: $checkNum", "Check Collection Number: $checkNum"),
       'date': FieldValue.serverTimestamp(),
     });
 
@@ -680,12 +681,12 @@ Future<void> _cashCheck(String checkId, double amount, String checkNum, String c
     await batch.commit();
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("تم تحصيل الشيك وتحديث حسابات العميل والمندوب بنجاح")),
+       SnackBar(content: Text(Translate.text(context, "تم تحصيل الشيك وتحديث حسابات العميل والمندوب بنجاح", "Check collected and customer/employee accounts updated successfully"))),
     );
   } catch (e) {
-    print("خطأ في التحصيل: $e");
+    print(Translate.text(context, "خطأ في التحصيل: $e", "Error collecting check: $e"));
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("فشل التحصيل: $e")),
+      SnackBar(content: Text(Translate.text(context, "فشل التحصيل: $e", "Failed to collect check: $e"))),
     );
   }
 }
@@ -695,21 +696,21 @@ Future<void> _cashCheck(String checkId, double amount, String checkNum, String c
     double diff = physical - systemBalance; // لو موجب يبقى زيادة، لو سالب يبقى عجز
 
     if (diff == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("الرصيد مطابق تماماً، ممتاز! 👌")));
+      ScaffoldMessenger.of(context).showSnackBar( SnackBar(content: Text(Translate.text(context, "الرصيد مطابق تماماً، ممتاز! 👌", "Balance is perfectly matched, excellent! 👌"))));
       return;
     }
 
     String type = diff > 0 ? 'income' : 'expense'; // الزيادة إيراد، العجز مصروف
     String desc = diff > 0 
-        ? "تسوية جرد (زيادة نقدية)" 
-        : "تسوية جرد (عجز نقدية)";
+        ? Translate.text(context, "تسوية جرد (زيادة نقدية)", "Audit Settlement (Cash Increase)")
+        : Translate.text(context, "تسوية جرد (عجز نقدية)", "Audit Settlement (Cash Deficit)");
 
     // نقوم بعمل حركة بقيمة الفرق فقط لتظبيط الرصيد
     await _processTransaction(diff.abs(), desc, type); // نرسل القيمة المطلقة لأن النوع سيحدد الجمع أو الطرح
 
     _physicalCountController.clear();
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text("تمت التسوية: ${diff > 0 ? 'زيادة' : 'عجز'} بقيمة ${diff.abs()}"),
+      content: Text(Translate.text(context, "تمت التسوية: ${diff > 0 ? 'زيادة' : 'عجز'} بقيمة ${diff.abs()}", "Audit completed: ${diff > 0 ? 'Increase' : 'Deficit'} of ${diff.abs()}")),
       backgroundColor: diff > 0 ? Colors.green : Colors.red,
     ));
   }

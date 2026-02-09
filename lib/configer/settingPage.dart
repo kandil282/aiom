@@ -1,15 +1,21 @@
-import 'package:aiom/configer/settings_provider.dart';
+import 'package:aiom/configer/settings_provider.dart'; // تأكد أن المسار صحيح
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-// تأكد من المسار
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
+}
+class Translate {
+  static String text(BuildContext context, String ar, String en) {
+    // بيقرأ اللغة من الـ Provider اللي عندك
+    bool isAr = Provider.of<SettingsProvider>(context, listen: false).locale.languageCode == 'ar';
+    return isAr ? ar : en;
+  }
 }
 
 class _SettingsPageState extends State<SettingsPage> {
@@ -18,6 +24,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    // نربط الشاشة بالبروفايدر
     final settings = Provider.of<SettingsProvider>(context);
     final user = FirebaseAuth.instance.currentUser;
     final isAr = settings.locale.languageCode == 'ar';
@@ -31,7 +38,7 @@ class _SettingsPageState extends State<SettingsPage> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // قسم الصورة والاسم
+            // قسم الملف الشخصي
             _buildProfileHeader(user, settings, isAr),
             const SizedBox(height: 30),
 
@@ -39,7 +46,7 @@ class _SettingsPageState extends State<SettingsPage> {
             _buildSectionTitle(isAr ? "إعدادات التطبيق" : "App Settings"),
             _buildSettingCard(
               title: isAr ? "الوضع الليلي" : "Dark Mode",
-              subtitle: isAr ? "تبديل بين المظهر الفاتح والداكن" : "Switch between light and dark",
+              subtitle: isAr ? "تبديل المظهر" : "Switch Appearance",
               icon: Icons.brightness_6,
               trailing: Switch(
                 value: settings.isDarkMode,
@@ -51,10 +58,8 @@ class _SettingsPageState extends State<SettingsPage> {
               subtitle: isAr ? "العربية / English" : "Arabic / English",
               icon: Icons.language,
               trailing: TextButton(
-                onPressed: () {
-                  settings.setLocale(isAr ? 'en' : 'ar');
-                },
-                child: Text(isAr ? "English" : "العربية", style: const TextStyle(fontWeight: FontWeight.bold)),
+                onPressed: () => settings.setLocale(isAr ? 'en' : 'ar'),
+                child: Text(isAr ? "English" : "العربية"),
               ),
             ),
 
@@ -64,7 +69,7 @@ class _SettingsPageState extends State<SettingsPage> {
             _buildSectionTitle(isAr ? "الأمان" : "Security"),
             _buildSettingCard(
               title: isAr ? "تغيير كلمة المرور" : "Change Password",
-              subtitle: isAr ? "إرسال رابط تعيين كلمة المرور" : "Send reset link",
+              subtitle: isAr ? "إرسال رابط التعيين" : "Send reset link",
               icon: Icons.lock_reset,
               onTap: () => _resetPassword(user?.email, isAr),
             ),
@@ -80,7 +85,9 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const CircularProgressIndicator();
         var userData = snapshot.data!.data() as Map<String, dynamic>;
-        _nameController.text = userData['username'] ?? "";
+        
+        // تحديث النص فقط في حالة عدم التعديل
+        if (!_isEditing) _nameController.text = userData['username'] ?? "";
 
         return Column(
           children: [
@@ -91,12 +98,15 @@ class _SettingsPageState extends State<SettingsPage> {
                     controller: _nameController,
                     textAlign: TextAlign.center,
                     decoration: InputDecoration(
-                      hintText: isAr ? "أدخل الاسم الجديد" : "Enter new name",
-                      suffixIcon: IconButton(icon: const Icon(Icons.check, color: Colors.green), 
-                      onPressed: () {
-                       settings.updateUserData(user!.uid, _nameController.text);
-                        setState(() => _isEditing = false);
-                      }),
+                      hintText: isAr ? "الاسم الجديد" : "New Name",
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.check, color: Colors.green),
+                        onPressed: () {
+                          // هنا بننادي الدالة من البروفايدر صح
+                          settings.updateUserData(user!.uid, _nameController.text);
+                          setState(() => _isEditing = false);
+                        },
+                      ),
                     ),
                   )
                 : Row(
@@ -125,13 +135,12 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildSettingCard({required String title, required String subtitle, required IconData icon, Widget? trailing, VoidCallback? onTap}) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 15),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       child: ListTile(
         onTap: onTap,
-        leading: Icon(icon, color: Colors.blueGrey),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+        leading: Icon(icon),
+        title: Text(title),
+        subtitle: Text(subtitle),
         trailing: trailing,
       ),
     );
@@ -141,7 +150,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (email != null) {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(isAr ? "تم إرسال رابط التغيير للإيميل" : "Reset link sent to your email"))
+        SnackBar(content: Text(isAr ? "تم إرسال الرابط" : "Reset link sent"))
       );
     }
   }

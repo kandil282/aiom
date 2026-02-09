@@ -1,3 +1,4 @@
+import 'package:aiom/configer/settingPage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -28,7 +29,7 @@ class _ShippingManagementPageState extends State<ShippingManagementPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("لوحة تحكم الشحن", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(Translate.text(context, "لوحة تحكم الشحن", "Shipping Management Dashboard"), style: const TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: Colors.orange[800],
         elevation: 0,
@@ -72,7 +73,7 @@ class _ShippingManagementPageState extends State<ShippingManagementPage> {
       ),
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        title: Text(order['customerName'] ?? "عميل جديد", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+        title: Text(order['customerName'] ?? Translate.text(context, "عميل جديد", "New Customer"), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -108,11 +109,11 @@ class _ShippingManagementPageState extends State<ShippingManagementPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("${item['productName']} (الكمية: ${item['qty']})", style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text(Translate.text(context, "${item['productName']} (الكمية: ${item['qty']})", "${item['productName']} (Quantity: ${item['qty']})"), style: const TextStyle(fontWeight: FontWeight.w600)),
           Wrap(
             spacing: 5,
             children: sources.map((src) => Chip(
-              label: Text("مخزن ${src['whName']}: ${src['qtyTaken']}", style: const TextStyle(fontSize: 10)),
+              label: Text(Translate.text(context, "مخزن ${src['whName']}: ${src['qtyTaken']}", "Warehouse ${src['whName']}: ${src['qtyTaken']}"), style: const TextStyle(fontSize: 10)),
               backgroundColor: Colors.blue.withOpacity(0.1),
             )).toList(),
           ),
@@ -132,8 +133,8 @@ class _ShippingManagementPageState extends State<ShippingManagementPage> {
             builder: (context, snap) {
               if (!snap.hasData) return const LinearProgressIndicator();
               return DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: "توجيه لمندوب شحن", border: OutlineInputBorder()),
-                items: snap.data!.docs.map((c) => DropdownMenuItem(value: c.id, child: Text(c['username'] ?? "مندوب"))).toList(),
+                decoration: InputDecoration(labelText: Translate.text(context, "توجيه لمندوب شحن", "Assign to Courier"), border: OutlineInputBorder()),
+                items: snap.data!.docs.map((c) => DropdownMenuItem(value: c.id, child: Text(c['username'] ?? Translate.text(context, "مندوب", "Courier")))).toList(),
                 onChanged: (id) {
                   var doc = snap.data!.docs.firstWhere((d) => d.id == id);
                   selectedCourierId = id;
@@ -151,7 +152,7 @@ class _ShippingManagementPageState extends State<ShippingManagementPage> {
               
             ) => _assignOrder(orderId, orderData),
             icon: const Icon(Icons.send, color: Colors.white),
-            label: const Text("إرسال المهمة وتنبيه المندوب", style: TextStyle(color: Colors.white)),
+            label: Text(Translate.text(context, "إرسال المهمة وتنبيه المندوب", "Send Task and Notify Courier"), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -185,7 +186,7 @@ class _ShippingManagementPageState extends State<ShippingManagementPage> {
       _sendNotification(selectedCourierToken!, data['customerName']);
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم التوجيه بنجاح ✅")));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(Translate.text(context, "تم التوجيه بنجاح ✅", "Assignment completed successfully ✅"))));
   }
 
   void _sendNotification(String token, String customer) {
@@ -201,7 +202,7 @@ class _ShippingManagementPageState extends State<ShippingManagementPage> {
         children: [
           Icon(Icons.inventory_2_outlined, size: 80, color: Colors.grey[300]),
           const SizedBox(height: 10),
-          const Text("لا توجد طلبات بانتظار الشحن حالياً", style: TextStyle(color: Colors.grey)),
+          Text(Translate.text(context, "لا توجد طلبات بانتظار الشحن حالياً", "No orders are waiting for shipping currently"), style: TextStyle(color: Colors.grey)),
         ],
       ),
     );

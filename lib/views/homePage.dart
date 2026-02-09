@@ -31,6 +31,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
+import 'package:aiom/configer/settingPage.dart';
 
 // استيراد كافة الصفحات الخاصة بك (تأكد من صحة المسارات لديك)
 // import 'package:aiom/shipping/CourierPage.dart'; ... إلخ
@@ -50,6 +51,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  
   // متغير لتخزين صلاحيات المستخدم
   Map<String, dynamic>? userPermissions;
   bool isLoading = true;
@@ -105,9 +107,9 @@ backgroundColor: Theme.of(context).scaffoldBackgroundColor,appBar: AppBar(
   ),
   title: Column(
     children: [
-      const Text(
-        "لوحة التحكم الذكية",
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, letterSpacing: 1.1),
+      Text(
+        Translate.text(context, "لوحة التحكم الذكية", "Smart Dashboard"),
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20, letterSpacing: 1.1),
       ),
       // زخرفة بسيطة تحت النص
       Container(
@@ -132,12 +134,7 @@ flexibleSpace: Container(
       end: Alignment.bottomRight,
       colors: [Color(0xff064e3b), Color.fromARGB(255, 52, 6, 179)], // درجات الأخضر الملكي أو الكحلي
     ),
-    // image: DecorationImage(
-    //   // رابط لنقش إسلامي هندسي شفاف
-    //   image: AssetImage('D:/downloads/new new/aiom/lib/assets/images/diamond-upholstery.png'),// نقش هادي ومضمون
-    //   opacity: 0.10, // الشفافية عشان تظهر كعلامة مائية
-    //   repeat: ImageRepeat.repeat,
-    // ),
+
   ),
 ),
   
@@ -146,10 +143,14 @@ flexibleSpace: Container(
     // زر اللغة بتصميم "بابل" (Bubble)
     _buildAnimatedAction(
       icon: Icons.language_rounded,
-      onTap: () {
-        final prov = Provider.of<SettingsProvider>(context, listen: false);
-        prov.locale.languageCode == 'ar' ? prov.setLocale('en') : prov.setLocale('ar');
-      },
+     onTap: () {
+  final prov = Provider.of<SettingsProvider>(context, listen: false);
+  
+  // لو عربي خليها إنجليزي، ولو أي حاجة تانية (إنجليزي) رجعها عربي
+  String newLang = (prov.locale.languageCode == 'ar') ? 'en' : 'ar';
+  
+  prov.setLocale(newLang);
+}
     ),
     // زر الثيم بتأثير الشمس والقمر
     _buildAnimatedAction(
@@ -182,53 +183,52 @@ flexibleSpace: Container(
 children: [
 
   // --- قسم الإدارة ---
-                  _buildSection("الإدارة والـ HR", [
-                    _item("إدارة الموظفين", Icons.people_alt_rounded, Colors.teal, const HRMasterPage(), "hr_manage", Theme.of(context).brightness == Brightness.dark),
-                    _item("بيانات الشركة", Icons.business_center_rounded, Colors.blueGrey, const CompanySettingsPage(), "company_info", Theme.of(context).brightness == Brightness.dark),
-                    _item("أرشيف المخزن", Icons.inventory_rounded, Colors.blueGrey, const MaterialArchivePage(), "warehouse_archive", Theme.of(context).brightness == Brightness.dark),
-                    _item(" التقارير", Icons.bar_chart_rounded, Colors.blueGrey, const ExecutiveReportsPage(), "admin", Theme.of(context).brightness == Brightness.dark),
-                  ]
+                  _buildSection(Translate.text(context, "الإدارة والـ HR", "Administration & HR"), [
+                    _item(Translate.text(context, "إدارة الموظفين", "Manage Employees"), Icons.people_alt_rounded, Colors.teal, const HRMasterPage(), "hr_manage", Theme.of(context).brightness == Brightness.dark),
+                    _item(Translate.text(context, "بيانات الشركة", "Company Information"), Icons.business_center_rounded, Colors.blueGrey, const CompanySettingsPage(), "company_info", Theme.of(context).brightness == Brightness.dark),
+                    _item(Translate.text(context, "أرشيف المخزن", "Warehouse Archive"), Icons.inventory_rounded, Colors.blueGrey, const MaterialArchivePage(), "warehouse_archive", Theme.of(context).brightness == Brightness.dark),
+                    _item(Translate.text(context, "التقارير", "Reports"), Icons.bar_chart_rounded, Colors.blueGrey, const CEO_Dashboard(), "admin", Theme.of(context).brightness == Brightness.dark),
+                  ]),
                   
                   
-                  ),
 
                   // --- قسم المبيعات ---
-                  _buildSection("المبيعات والعملاء", [
-                    _item("مدير مبيعات", Icons.shopping_cart_checkout_rounded, Colors.green, const SalesManagerDashboard(), "sales_manager", Theme.of(context).brightness == Brightness.dark),
-                    _item("طلب مبيعات", Icons.shopping_cart_checkout_rounded, Colors.green, const AgentOrderPage(), "sales_create", Theme.of(context).brightness == Brightness.dark),
-                    _item("إدارة المبيعات", Icons.analytics_rounded, Colors.green, ProfessionalAgentDashboard(userId: FirebaseAuth.instance.currentUser!.uid, agentName: widget.userName), "sales_manage", Theme.of(context).brightness == Brightness.dark),
-                    _item("إدارة العملاء", Icons.person_add_alt_1_rounded, Colors.green, const ManageCustomersPage(), "customer_add", Theme.of(context).brightness == Brightness.dark),
+                  _buildSection(Translate.text(context, "المبيعات والعملاء", "Sales & Customers"), [
+                    _item(Translate.text(context, "مدير مبيعات", "Sales Manager"), Icons.shopping_cart_checkout_rounded, Colors.green, const SalesManagerDashboard(), "sales_manager", Theme.of(context).brightness == Brightness.dark),
+                    _item(Translate.text(context, "طلب مبيعات", "Create Sales Order"), Icons.shopping_cart_checkout_rounded, Colors.green, const AgentOrderPage(), "sales_create", Theme.of(context).brightness == Brightness.dark),
+                    _item(Translate.text(context, "إدارة المبيعات", "Manage Sales"), Icons.analytics_rounded, Colors.green, ProfessionalAgentDashboard(userId: FirebaseAuth.instance.currentUser!.uid, agentName: widget.userName), "sales_manage", Theme.of(context).brightness == Brightness.dark),
+                    _item(Translate.text(context, "إدارة العملاء", "Manage Customers"), Icons.person_add_alt_1_rounded, Colors.green, const ManageCustomersPage(), "customer_add", Theme.of(context).brightness == Brightness.dark),
                   ]),
 
                   // --- قسم المالية ---
-                  _buildSection("الحسابات والمالية", [
-                    _item("حسابات العملاء", Icons.account_balance_wallet_rounded, Colors.blue, const CustomerAccountsPage(), "acc_customers", Theme.of(context).brightness == Brightness.dark),
-                    _item("فاتورة ", Icons.receipt_long_rounded, Colors.blue, const SmartInvoicePage(), "acc_invoices", Theme.of(context).brightness == Brightness.dark),
-                    _item("كشف حساب", Icons.picture_as_pdf_rounded, Colors.blue, const CustomerStatementPage(), "acc_statements", Theme.of(context).brightness == Brightness.dark),
-                    _item("الخزنة", Icons.account_balance_rounded, Colors.redAccent, const VaultPage(), "acc_expenses", Theme.of(context).brightness == Brightness.dark),
-                    _item("الموردين", Icons.account_balance_rounded, Colors.redAccent, const SuppliersDashboard(), "acc_expenses", Theme.of(context).brightness == Brightness.dark),
-                    _item("العهدة", Icons.money, Colors.redAccent, const ProfessionalAccountsPage(), "acc_expenses", Theme.of(context).brightness == Brightness.dark),
-                    _item("مراجعة أوردرات المبيعات", Icons.account_balance_rounded, Colors.redAccent, const AccountantApprovalPage(), "acc_invoices", Theme.of(context).brightness == Brightness.dark),
-                    _item("  أوامر الإنتاج", Icons.precision_manufacturing_outlined, Colors.redAccent, const SmartProductionOrderPage(), "acc_invoices", Theme.of(context).brightness == Brightness.dark),
+                  _buildSection(Translate.text(context, "الحسابات والمالية", "Accounts & Finance"), [
+                    _item(Translate.text(context, "حسابات العملاء", "Customer Accounts"), Icons.account_balance_wallet_rounded, Colors.blue, const CustomerAccountsPage(), "acc_customers", Theme.of(context).brightness == Brightness.dark),
+                    _item(Translate.text(context, "فاتورة ", "Invoice"), Icons.receipt_long_rounded, Colors.blue, const SmartInvoicePage(), "acc_invoices", Theme.of(context).brightness == Brightness.dark),
+                    _item(Translate.text(context, "كشف حساب", "Account Statement"), Icons.picture_as_pdf_rounded, Colors.blue, const CustomerStatementPage(), "acc_statements", Theme.of(context).brightness == Brightness.dark),
+                    _item(Translate.text(context, "الخزنة", "Vault"), Icons.account_balance_rounded, Colors.redAccent, const VaultPage(), "acc_expenses", Theme.of(context).brightness == Brightness.dark),
+                    _item(Translate.text(context, "الموردين", "Suppliers"), Icons.account_balance_rounded, Colors.redAccent, const SuppliersDashboard(), "acc_expenses", Theme.of(context).brightness == Brightness.dark),
+                    _item(Translate.text(context, "العهدة", "Treasuries"), Icons.money, Colors.redAccent, const ProfessionalAccountsPage(), "acc_expenses", Theme.of(context).brightness == Brightness.dark),
+                    _item(Translate.text(context, "مراجعة أوردرات المبيعات", "Sales Orders Approval"), Icons.account_balance_rounded, Colors.redAccent, const AccountantApprovalPage(), "acc_invoices", Theme.of(context).brightness == Brightness.dark),
+                    _item(Translate.text(context, "  أوامر الإنتاج", "Production Orders"), Icons.precision_manufacturing_outlined, Colors.redAccent, const SmartProductionOrderPage(), "acc_invoices", Theme.of(context).brightness == Brightness.dark),
                   ]),
 
                   // --- قسم المخازن ---
-                  _buildSection("المخازن والإنتاج", [
-                    _item("مخزن المنتجات", Icons.warehouse_rounded, Colors.brown, const StorageDashboard(), "store_products", Theme.of(context).brightness == Brightness.dark),
-                    _item(" المنتجات", Icons.production_quantity_limits, Colors.brown, const AddProductPage(), "store_products", Theme.of(context).brightness == Brightness.dark),
-                    _item("أوامر الإنتاج", Icons.precision_manufacturing_rounded, Colors.blueGrey, const ProductionDashboard(), "production_orders", Theme.of(context).brightness == Brightness.dark),
-                    _item("صرف خامات", Icons.outbox_rounded, Colors.blueGrey, const WarehouseDispatchPage(), "warehouse_dispatch", Theme.of(context).brightness == Brightness.dark),
-                    _item("طلب خامات", Icons.inbox_rounded, Colors.blueGrey, const MaterialRequestPage(), "production_orders", Theme.of(context).brightness == Brightness.dark),
-                    _item("فاتورة شراء", Icons.receipt_long_rounded, Colors.blueGrey, const PurchaseInvoicePage(), "acc_expenses", Theme.of(context).brightness == Brightness.dark),
-                    _item(" المخازن", Icons.warehouse_rounded, Colors.blueGrey, const ManageWarehousesPage(), "acc_expenses", Theme.of(context).brightness == Brightness.dark),
-                    _item(" مخزن الخامات", Icons.warehouse_rounded, Colors.blueGrey, const RawMaterialsInventoryPage(), "acc_expenses", Theme.of(context).brightness == Brightness.dark),
+                  _buildSection(Translate.text(context, "المخازن والإنتاج", "Storage & Production"), [
+                    _item(Translate.text(context, "مخزن المنتجات", "Products Storage"), Icons.warehouse_rounded, Colors.brown, const StorageDashboard(), "store_products", Theme.of(context).brightness == Brightness.dark),
+                    _item(Translate.text(context, " المنتجات", "Products"), Icons.production_quantity_limits, Colors.brown, const AddProductPage(), "store_products", Theme.of(context).brightness == Brightness.dark),
+                    _item(Translate.text(context, "أوامر الإنتاج", "Production Orders"), Icons.precision_manufacturing_rounded, Colors.blueGrey, const ProductionDashboard(), "production_orders", Theme.of(context).brightness == Brightness.dark),
+                    _item(Translate.text(context, "صرف خامات", "Warehouse Dispatch"), Icons.outbox_rounded, Colors.blueGrey, const WarehouseDispatchPage(), "warehouse_dispatch", Theme.of(context).brightness == Brightness.dark),
+                    _item(Translate.text(context, "طلب خامات", "Material Request"), Icons.inbox_rounded, Colors.blueGrey, const MaterialRequestPage(), "production_orders", Theme.of(context).brightness == Brightness.dark),
+                    _item(Translate.text(context, "فاتورة شراء", "Purchase Invoice"), Icons.receipt_long_rounded, Colors.blueGrey, const PurchaseInvoicePage(), "acc_expenses", Theme.of(context).brightness == Brightness.dark),
+                    _item(Translate.text(context, " المخازن", "Warehouses"), Icons.warehouse_rounded, Colors.blueGrey, const ManageWarehousesPage(), "acc_expenses", Theme.of(context).brightness == Brightness.dark),
+                    _item(Translate.text(context, " مخزن الخامات", "Raw Materials Inventory"), Icons.warehouse_rounded, Colors.blueGrey, const RawMaterialsInventoryPage(), "acc_expenses", Theme.of(context).brightness == Brightness.dark),
                   ]),
 
                   // --- قسم الشحن (هنا الذكاء للمندوب) ---
-                  _buildSection("الشحن والنقل", [
-                    _item("إدارة الشحن", Icons.local_shipping_rounded, Colors.orange, const ShippingManagementPage(), "shipping_admin", Theme.of(context).brightness == Brightness.dark),
-                    _item("تتبع الشحن", Icons.location_searching_rounded, Colors.orange, const FleetRadarPage(), "shipping_track", Theme.of(context).brightness == Brightness.dark),
-                    _item("مندوب التوصيل", Icons.delivery_dining_rounded, Colors.orange, const CourierDashboard(), "is_courier", Theme.of(context).brightness == Brightness.dark),
+                  _buildSection(Translate.text(context, "الشحن والنقل", "Shipping & Transportation"), [
+                    _item(Translate.text(context, "إدارة الشحن", "Shipping Management"), Icons.local_shipping_rounded, Colors.orange, const ShippingManagementPage(), "shipping_admin", Theme.of(context).brightness == Brightness.dark),
+                    _item(Translate.text(context, "تتبع الشحن", "Shipping Tracking"), Icons.location_searching_rounded, Colors.orange, const FleetRadarPage(), "shipping_track", Theme.of(context).brightness == Brightness.dark),
+                    _item(Translate.text(context, "مندوب التوصيل", "Delivery Courier"), Icons.delivery_dining_rounded, Colors.orange, const CourierDashboard(), "is_courier", Theme.of(context).brightness == Brightness.dark),
                   ]),
                 ],
               ),

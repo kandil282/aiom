@@ -1,5 +1,6 @@
 // ... (الإستيرادات كما هي)
 
+import 'package:aiom/configer/settingPage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +23,7 @@ Future<void> _processDispatch(BuildContext context, String docId, List items) as
 final uid = FirebaseAuth.instance.currentUser?.uid;
 // جلب بيانات الموظف من كوليكشن المستخدمين
 final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-final dispatcherName = userDoc.data()?['username'] ?? "أمين المخزن"; // اسم الموظف
+final dispatcherName = userDoc.data()?['username'] ?? Translate.text(context, "أمين المخزن", "Warehouse Keeper"); // اسم الموظف
   showDialog(
     context: context,
     barrierDismissible: false,
@@ -41,12 +42,12 @@ final dispatcherName = userDoc.data()?['username'] ?? "أمين المخزن"; /
         // فحص الرصيد لمنع السالب
         DocumentSnapshot matSnapshot = await firestore.collection('raw_materials').doc(mId).get();
         
-        if (!matSnapshot.exists) throw "الخامة ${item['materialName']} غير موجودة!";
+        if (!matSnapshot.exists) throw Translate.text(context, "الخامة ${item['materialName']} غير موجودة!", "Raw material ${item['materialName']} does not exist!");
 
         double currentStock = double.tryParse(matSnapshot.get('stock').toString()) ?? 0.0;
 
         if (currentStock < requestedQty) {
-          throw "الرصيد غير كافٍ لـ: ${item['materialName']}\nالمتاح: $currentStock";
+          throw Translate.text(context, "الرصيد غير كافٍ لـ: ${item['materialName']}\nالمتاح: $currentStock", "Insufficient stock for: ${item['materialName']}\nAvailable: $currentStock");
         }
 
         // إضافة الخصم للـ Batch
@@ -73,7 +74,7 @@ batch.update(requestRef, {
     }
 
     scaffoldMessenger.showSnackBar(
-      const SnackBar(content: Text("تم الصرف بنجاح ✅"), backgroundColor: Colors.green)
+      SnackBar(content: Text(Translate.text(context, "تم الصرف بنجاح ✅", "Dispatch completed successfully ✅")), backgroundColor: Colors.green)
     );
 
   } catch (e) {
@@ -90,13 +91,13 @@ Future<void> _deleteRequest(BuildContext context, String docId) async {
   bool confirm = await showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text("حذف الطلب"),
-      content: const Text("هل أنت متأكد من حذف هذا الطلب نهائياً؟ لن يتم خصم أي خامات."),
+      title: Text(Translate.text(ctx, "حذف الطلب", "Delete Request")),
+      content: Text(Translate.text(ctx, "هل أنت متأكد من حذف هذا الطلب نهائياً؟ لن يتم خصم أي خامات.", "Are you sure you want to permanently delete this request? No raw materials will be deducted.")),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("إلغاء")),
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(Translate.text(ctx, "إلغاء", "Cancel"))),
         TextButton(
           onPressed: () => Navigator.pop(ctx, true), 
-          child: const Text("حذف", style: TextStyle(color: Colors.red))
+          child: Text(Translate.text(ctx, "حذف", "Delete"), style: const TextStyle(color: Colors.red))
         ),
       ],
     ),
@@ -104,25 +105,25 @@ Future<void> _deleteRequest(BuildContext context, String docId) async {
 
   if (confirm) {
     await FirebaseFirestore.instance.collection('material_requests').doc(docId).delete();
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم حذف الطلب بنجاح")));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(Translate.text(context, "تم حذف الطلب بنجاح", "Request deleted successfully"))));
   }
 }
   void _showErrorDialog(BuildContext context, String message) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Row(
+        title:  Row(
           children: [
             Icon(Icons.error_outline, color: Colors.red),
             SizedBox(width: 10),
-            Text("تنبيه"),
+            Text(Translate.text(context, "تنبيه", "Alert")),
           ],
         ),
         content: Text(message),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text("حسناً"),
+            child: Text(Translate.text(context, "حسناً", "OK")),
           ),
         ],
       ),
@@ -139,7 +140,7 @@ Future<void> _deleteRequest(BuildContext context, String docId) async {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("أذونات صرف الخامات"),
+        title: Text(Translate.text(context, "أذونات صرف الخامات", "Material Dispatch Permissions")),
         centerTitle: true,
         backgroundColor: Colors.teal[800],
       ),
@@ -153,7 +154,7 @@ Future<void> _deleteRequest(BuildContext context, String docId) async {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return Center(child: Text("خطأ في جلب البيانات: ${snapshot.error}"));
+            return Center(child: Text(Translate.text(context, "خطأ في جلب البيانات: ${snapshot.error}", "Error fetching data: ${snapshot.error}")));
           }
 
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -168,7 +169,7 @@ Future<void> _deleteRequest(BuildContext context, String docId) async {
                 children: [
                   Icon(Icons.done_all, size: 80, color: Colors.teal[200]),
                   const SizedBox(height: 10),
-                  const Text("كل الطلبات تم صرفها", style: TextStyle(color: Colors.grey, fontSize: 18)),
+                  Text(Translate.text(context, "كل الطلبات تم صرفها", "All requests have been dispatched"), style: TextStyle(color: Colors.grey, fontSize: 18)),
                 ],
               )
             );
@@ -187,8 +188,8 @@ return Card(
   margin: const EdgeInsets.only(bottom: 12),
   child: ExpansionTile(
     leading: const Icon(Icons.pending_actions, color: Colors.orange),
-    title: Text("طلب: ${data['requestedBy'] ?? 'إنتاج'}"),
-    subtitle: Text("المخزن: ${data['warehouseName'] ?? 'عام'}"),
+    title: Text(Translate.text(context, "طلب: ${data['requestedBy'] ?? 'إنتاج'}", "Request: ${data['requestedBy'] ?? 'Production'}")),
+    subtitle: Text(Translate.text(context, "المخزن: ${data['warehouseName'] ?? 'عام'}", "Warehouse: ${data['warehouseName'] ?? 'General'}")),
     
     // --- إضافة زرار الحذف هنا ---
     trailing: IconButton(
@@ -199,15 +200,15 @@ return Card(
     children: [
       const Divider(),
       ...items.map((it) => ListTile(
-        title: Text(it['materialName'] ?? 'خامة'),
-        trailing: Text("الكمية: ${it['qty']}"),
+        title: Text(Translate.text(context, it['materialName'] ?? 'خامة', it['materialName'] ?? 'Raw Material')),
+        trailing: Text(Translate.text(context, "الكمية: ${it['qty']}", "Quantity: ${it['qty']}")),
       )),
       Padding(
         padding: const EdgeInsets.all(15),
         child: ElevatedButton.icon(
           onPressed: () => _processDispatch(context, doc.id, items),
           icon: const Icon(Icons.check_circle),
-          label: const Text("تأكيد خروج الأصناف"),
+          label: Text(Translate.text(context, "تأكيد خروج الأصناف", "Confirm Dispatch of Items")),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.teal,
             minimumSize: const Size(double.infinity, 45)

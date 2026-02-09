@@ -1,3 +1,4 @@
+import 'package:aiom/configer/settingPage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -56,9 +57,9 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
       _nameController.clear();
       _priceController.clear();
       _barcodeController.clear();
-      _showSnackBar("تم الحفظ بنجاح", Colors.green);
+      _showSnackBar(Translate.text(context, "تم الحفظ بنجاح", "Successfully Saved"), Colors.green);
     } catch (e) {
-      _showSnackBar("حدث خطأ", Colors.red);
+      _showSnackBar(Translate.text(context, "حدث خطأ", "An error occurred"), Colors.red);
     } finally {
       setState(() => _isLoading = false);
     }
@@ -69,7 +70,7 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
       'isDeleted': true,
       'deletedAt': FieldValue.serverTimestamp(),
     });
-    _showSnackBar("تم حذف المنتج بنجاح (إخفاء فقط)", Colors.blueGrey);
+    _showSnackBar(Translate.text(context, "تم حذف المنتج بنجاح (إخفاء فقط)", "Product deleted successfully (Hidden only)"), Colors.blueGrey);
   }
 
   @override
@@ -86,7 +87,7 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
         slivers: [
           _buildAppBar(isDarkMode),
           SliverToBoxAdapter(child: _buildInputSection(isDarkMode, mainTextColor)),
-          SliverToBoxAdapter(child: _buildSectionTitle("إدارة الأصناف (اسحب للحذف)", mainTextColor)),
+          SliverToBoxAdapter(child: _buildSectionTitle(Translate.text(context, "إدارة الأصناف (اسحب للحذف)", "Manage Products (Drag to Delete)"), mainTextColor)),
           _buildProductList(isDarkMode, mainTextColor),
         ],
       ),
@@ -98,7 +99,7 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
       expandedHeight: 120,
       pinned: true,
       flexibleSpace: FlexibleSpaceBar(
-        title: const Text("المصنع الذكي", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: Text(Translate.text(context, "المصنع الذكي", "Smart Factory"), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
         background: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -114,7 +115,7 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
         indicatorColor: Colors.amber,
         labelColor: Colors.white,
         unselectedLabelColor: Colors.white70,
-        tabs: const [Tab(text: "منتجات تامة"), Tab(text: "خامات")],
+        tabs:  [Tab(text: Translate.text(context, "منتجات تامة", "Finished Products")), Tab(text: Translate.text(context, "خامات", "Raw Materials"))],
       ),
     );
   }
@@ -134,7 +135,7 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
               TextField(
                 controller: _nameController,
                 style: TextStyle(color: textColor), // لون الكتابة
-                decoration: _inputDecoration(Icons.inventory_2, isDarkMode, label: "اسم الصنف"),
+                decoration: _inputDecoration(Icons.inventory_2, isDarkMode, label: Translate.text(context, "اسم الصنف", "Product Name")),
               ),
               const SizedBox(height: 15),
               _buildCategorySelectors(isDarkMode, textColor),
@@ -145,7 +146,7 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
                     child: TextField(
                       controller: _priceController,
                       style: TextStyle(color: textColor),
-                      decoration: _inputDecoration(Icons.payments, isDarkMode, label: "السعر"),
+                      decoration: _inputDecoration(Icons.payments, isDarkMode, label: Translate.text(context, "السعر", "Price")),
                       keyboardType: TextInputType.number,
                     ),
                   ),
@@ -154,7 +155,7 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
                     child: TextField(
                       controller: _barcodeController,
                       style: TextStyle(color: textColor),
-                      decoration: _inputDecoration(Icons.qr_code_scanner, isDarkMode, label: "الباركود"),
+                      decoration: _inputDecoration(Icons.qr_code_scanner, isDarkMode, label: Translate.text(context, "الباركود", "Barcode")),
                     ),
                   ),
                 ],
@@ -184,16 +185,16 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
         }).toList();
 
         if (docs.isEmpty) {
-          return const SliverToBoxAdapter(child: Center(child: Padding(
+          return  SliverToBoxAdapter(child: Center(child: Padding(
             padding: EdgeInsets.all(20.0),
-            child: Text("لا توجد أصناف حالياً، أضف صنفك الأول"),
+            child: Text(Translate.text(context, "لا توجد أصناف حالياً، أضف صنفك الأول", "No products available yet, add your first product"), style: TextStyle(fontSize: 16, color: Colors.grey)),
           )));
         }
 
         Map<String, List<DocumentSnapshot>> grouped = {};
         for (var d in docs) {
           var data = d.data() as Map<String, dynamic>;
-          String cat = data.containsKey('category') ? data['category'] : "غير مصنف";
+          String cat = data.containsKey('category') ? data['category'] : Translate.text(context, "غير مصنف", "Uncategorized");
           grouped.putIfAbsent(cat, () => []).add(d);
         }
 
@@ -217,7 +218,7 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
   
   Widget _buildDismissibleCard(DocumentSnapshot doc, bool isDarkMode, Color textColor) {
     var data = doc.data() as Map<String, dynamic>;
-    String productName = data['productName'] ?? "هذا الصنف";
+    String productName = data['productName'] ?? Translate.text(context, "هذا الصنف", "This Product");
 
     return Dismissible(
       key: Key(doc.id),
@@ -233,14 +234,14 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
                 children: [
                   const Icon(Icons.warning_amber_rounded, color: Colors.red),
                   const SizedBox(width: 10),
-                  Text("تأكيد الحذف", style: TextStyle(color: textColor)),
+                  Text(Translate.text(context, "تأكيد الحذف", "Confirm Deletion"), style: TextStyle(color: textColor)),
                 ],
               ),
-              content: Text("هل أنت متأكد من حذف ($productName) نهائياً؟", style: TextStyle(color: textColor)),
+              content: Text("${Translate.text(context, "هل أنت متأكد من حذف", "Are you sure you want to delete")} ($productName) ${Translate.text(context, "نهائياً؟", "permanently?")}", style: TextStyle(color: textColor)),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text("إلغاء", style: TextStyle(color: Colors.grey)),
+                  child: Text(Translate.text(context, "إلغاء", "Cancel"), style: TextStyle(color: Colors.grey)),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -248,7 +249,7 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text("حذف الآن", style: TextStyle(color: Colors.white)),
+                  child: Text(Translate.text(context, "حذف الآن", "Delete Now"), style: TextStyle(color: Colors.white)),
                 ),
               ],
             );
@@ -264,11 +265,11 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
         ),
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.symmetric(horizontal: 25),
-        child: const Column(
+        child:  Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.delete_forever, color: Colors.white, size: 30),
-            Text("حذف", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+            Text(Translate.text(context, "حذف", "Delete"), style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -301,7 +302,7 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
                 style: TextStyle(fontWeight: FontWeight.bold, color: isDarkMode ? Colors.white : Colors.indigo)
               ),
             ),
-            title: Text(data['productName'] ?? "صنف قديم", 
+            title: Text(Translate.text(context, data['productName'] ?? "صنف قديم", "Old Product"), 
               style: TextStyle(fontWeight: FontWeight.bold, color: textColor) // هنا اللون الأسود في اللايت
             ),
             subtitle: Text("${data['subCategory'] ?? '---'} • ${data['barcode'] ?? '---'}",
@@ -313,7 +314,7 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
                 Text("${data['price'] ?? 0} ج.م", 
                   style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)
                 ),
-                Text("إجمالي رصيد", style: TextStyle(fontSize: 10, color: isDarkMode ? Colors.grey[500] : Colors.grey)),
+                Text(Translate.text(context, "إجمالي رصيد", "Total Stock"), style: TextStyle(fontSize: 10, color: isDarkMode ? Colors.grey[500] : Colors.grey)),
               ],
             ),
           ),
@@ -355,7 +356,7 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(backgroundColor: Colors.amber[700], shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
         onPressed: _isLoading ? null : _saveProduct,
-        child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("حفظ وتوزيع الصنف", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : Text(Translate.text(context, "حفظ وتوزيع الصنف", "Save and Distribute Product"), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -377,7 +378,7 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
                     dropdownColor: isDarkMode ? Colors.grey[800] : Colors.white, // لون القائمة المنسدلة
                     initialValue: _selectedCat,
                     style: TextStyle(color: textColor), // لون النص المختار
-                    hint: Text("اختر الرئيسي", style: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[700])),
+                    hint: Text(Translate.text(context, "اختر التصنيف الرئيسي", "Choose Main Category"), style: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[700])),
                     decoration: _inputDecoration(Icons.category, isDarkMode),
                     items: snapshot.hasData ? snapshot.data!.docs.map((doc) => DropdownMenuItem(value: doc['name'].toString(), child: Text(doc['name']))).toList() : [],
                     onChanged: (val) => setState(() { _selectedCat = val; _selectedSubCat = null; }),
@@ -400,7 +401,7 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
                       dropdownColor: isDarkMode ? Colors.grey[800] : Colors.white,
                       initialValue: _selectedSubCat,
                       style: TextStyle(color: textColor),
-                      hint: Text("اختر الفرعي", style: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[700])),
+                      hint: Text(Translate.text(context, "اختر التصنيف الفرعي", "Choose Subcategory"), style: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[700])),
                       decoration: _inputDecoration(Icons.account_tree_outlined, isDarkMode),
                       items: snapshot.hasData ? snapshot.data!.docs.map((doc) => DropdownMenuItem(value: doc['name'].toString(), child: Text(doc['name']))).toList() : [],
                       onChanged: (val) => setState(() => _selectedSubCat = val),
@@ -423,14 +424,14 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
       builder: (context) => AlertDialog(
         backgroundColor: isDarkMode ? Colors.grey[900] : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(isMainCategory ? "إضافة رئيسي جديد" : "إضافة فرعي لـ $_selectedCat", style: TextStyle(color: textColor)),
+        title: Text(isMainCategory ? Translate.text(context, "إضافة رئيسي جديد", "Add New Main Category") : Translate.text(context, "إضافة فرعي لـ $_selectedCat", "Add Subcategory to $_selectedCat"), style: TextStyle(color: textColor)),
         content: TextField(
           controller: newCatController, 
           style: TextStyle(color: textColor),
           decoration: _inputDecoration(Icons.add_box, isDarkMode)
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("إلغاء", style: TextStyle(color: Colors.grey))),
+          TextButton(onPressed: () => Navigator.pop(context), child:  Text(  Translate.text(context, "إلغاء", "Cancel"), style: TextStyle(color: Colors.grey))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
             onPressed: () async {
@@ -443,7 +444,7 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
               }
               Navigator.pop(context);
             }
-          }, child: const Text("حفظ", style: TextStyle(color: Colors.black))),
+          }, child: Text(Translate.text(context, "حفظ", "Save"), style: TextStyle(color: Colors.black))),
         ],
       ),
     );

@@ -1,3 +1,4 @@
+import 'package:aiom/configer/settingPage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -17,13 +18,13 @@ class FleetRadarPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("رادار المتابعة اللحظية"),
+        title: Text(Translate.text(context, "رادار المتابعة اللحظية", "Live Fleet Tracking")),
         backgroundColor: isDark ? const Color(0xff1e1b4b) : Colors.indigo[900],
         foregroundColor: Colors.white,
       ),
       body: StreamBuilder<QuerySnapshot>(
         // جلب كل المناديب (تأكد أن role هو التسمية الصحيحة عندك في Firestore)
-        stream: FirebaseFirestore.instance.collection('users').snapshots(),
+        stream: FirebaseFirestore.instance.collection('users').where('role', isEqualTo: 'courier').snapshots(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
@@ -35,7 +36,7 @@ class FleetRadarPage extends StatelessWidget {
             // قراءة الإحداثيات بناءً على أسماء الحقول في كود المندوب الخاص بك
             double? lat = data['latitude']?.toDouble();
             double? lng = data['longitude']?.toDouble();
-            String name = data['username'] ?? "مندوب";
+            String name = data['username'] ?? Translate.text(context, "مندوب", "Courier");
 
             if (lat != null && lng != null) {
               markers.add(
