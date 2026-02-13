@@ -456,6 +456,7 @@ Widget _buildFlashCard({
       }
 
       return _buildAdvancedTopAgentCard(
+        
         topAgentName, 
         currentAmount, 
         percentChange,
@@ -747,7 +748,7 @@ Widget _buildInventoryTab(bool isDark) {
                 Text(Translate.text(context, "📊 تقرير المخزون الحالي", "📊 Current Inventory Report"), 
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark?Colors.white:Colors.black)),
                 ElevatedButton.icon(
-                  onPressed: () => _generateInventoryPDF(products), // دالة الطباعة
+                  onPressed: () => _generateInventoryPDF(context, snapshot.data!.docs), // دالة الطباعة
                   icon: const Icon(Icons.print, size: 18),
                   label: Text(Translate.text(context, "طباعة PDF", "Print PDF")),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, foregroundColor: Colors.white),
@@ -813,54 +814,75 @@ Widget _buildInventoryTab(bool isDark) {
     },
   );
 }
-Future<void> _generateInventoryPDF(List<QueryDocumentSnapshot> docs) async {
-  final pdf = pw.Document();
+// لاحظ هنا بنمرر الـ BuildContext بتاع الصفحة
+Future<void> _generateInventoryPDF(BuildContext context, List<QueryDocumentSnapshot> docs) async {
+  // 1. تأكد أن الـ context لسه موجود
+  if (!context.mounted) return;
 
-  // تحميل خط يدعم العربية (اختياري ولكن يفضل لضبط التقرير)
+  // 2. ترجمة العناوين والثوابت "قبل" الدخول في بناء الـ PDF
+  final String title = Translate.text(context, "تقرير جرد المخزن التفصيلي", "Detailed Inventory Report");
+  final String productHeader = Translate.text(context, "المنتج", "Product Name");
+  final String catHeader = Translate.text(context, "القسم", "Category");
+  final String subCatHeader = Translate.text(context, "القسم الفرعي", "Subcategory");
+  final String priceHeader = Translate.text(context, "السعر", "Price");
+  final String qtyHeader = Translate.text(context, "الكمية", "Quantity");
+  final String currency = Translate.text(context, "ج.م", "EGP");
+  final String noName = Translate.text(context, "بدون اسم", "No Name");
+  final String general = Translate.text(context, "عام", "General");
+  final String uncategorized = Translate.text(context, "غير مصنف", "Uncategorized");
+  
+  // معرفة الاتجاه مرة واحدة
+  final bool isAr = Translate.text(context, "ar", "en") == "ar";
+
+  final pdf = pw.Document();
   final arabicFont = await PdfGoogleFonts.cairoMedium();
 
-  // حساب إجمالي قيمة المخزون
+  // حساب الإجمالي
   double totalInventoryValue = docs.fold(0, (sum, doc) {
     var d = doc.data() as Map<String, dynamic>;
     return sum + ((d['price'] ?? 0) * (d['totalQuantity'] ?? 0));
   });
 
+  final String totalText = Translate.text(context, 
+    "إجمالي قيمة البضاعة بالمخزن: ${totalInventoryValue.toStringAsFixed(2)} $currency", 
+    "Total Value: ${totalInventoryValue.toStringAsFixed(2)} $currency"
+  );
+
+  // 3. تحويل الداتا لنصوص جاهزة (عشان الـ PDF ميتعاملش مع Firestore docs)
+  final List<List<String>> tableData = docs.map((doc) {
+    var d = doc.data() as Map<String, dynamic>;
+    return [
+      (d['productName'] ?? noName).toString(),
+      (d['category'] ?? general).toString(),
+      (d['subCategory'] ?? uncategorized).toString(),
+      "${d['price'] ?? 0} $currency",
+      (d['totalQuantity'] ?? 0).toString(),
+    ];
+  }).toList();
+
+  // 4. بناء الـ PDF باستخدام المتغيرات الجاهزة فقط
   pdf.addPage(
     pw.MultiPage(
       theme: pw.ThemeData.withFont(base: arabicFont),
-      textDirection: pw.TextDirection.rtl, // دعم الكتابة من اليمين لليسار
-      build: (context) => [
-        pw.Header(level: 0, child: pw.Text(Translate.text(context as BuildContext, "تقرير جرد المخزن التفصيلي", "Detailed Inventory Report"))),
+      textDirection: isAr ? pw.TextDirection.rtl : pw.TextDirection.ltr,
+      build: (pw.Context pdfCtx) => [
+        pw.Header(level: 0, child: pw.Text(title, style: pw.TextStyle(fontSize: 22))),
         pw.SizedBox(height: 10),
-        pw.Text(Translate.text(context as BuildContext, "إجمالي قيمة البضاعة بالمخزن: ${totalInventoryValue.toStringAsFixed(2)} ج.م", "Total Value of Inventory: ${totalInventoryValue.toStringAsFixed(2)} EGP"), 
-               style: pw.TextStyle(fontSize: 18, color: PdfColors.blue)),
+        pw.Text(totalText, style: pw.TextStyle(fontSize: 16, color: PdfColors.blueGrey800)),
         pw.SizedBox(height: 20),
         pw.TableHelper.fromTextArray(
-          headers: [
-            Translate.text(context as BuildContext, "المنتج", "Product Name"),
-            Translate.text(context as BuildContext, "القسم", "Category"),
-            Translate.text(context as BuildContext, "القسم الفرعي", "Subcategory"),
-            Translate.text(context as BuildContext, "السعر", "Price"),
-            Translate.text(context as BuildContext, "الكمية", "Quantity")
-          ],
-          data: docs.map((doc) {
-            var d = doc.data() as Map<String, dynamic>;
-            return [
-              d['productName'] ?? Translate.text(context as BuildContext, "بدون اسم", "No Name"),
-              d['category'] ?? Translate.text(context as BuildContext, "عام", "General"),
-              d['subCategory'] ?? Translate.text(context as BuildContext, "غير مصنف", "Uncategorized"),
-              Translate.text(context as BuildContext, "${d['price']} ج.م", "${d['price']} EGP"),
-              d['totalQuantity'].toString(),
-            ];
-          }).toList(),
-          headerStyle: pw.TextStyle( color: PdfColors.white),
+          headers: [productHeader, catHeader, subCatHeader, priceHeader, qtyHeader],
+          data: tableData,
+          headerStyle: pw.TextStyle(color: PdfColors.white, fontSize: 12),
           headerDecoration: const pw.BoxDecoration(color: PdfColors.blueAccent),
           cellAlignment: pw.Alignment.centerRight,
+          cellStyle: pw.TextStyle(font: arabicFont, fontSize: 10),
         ),
       ],
     ),
   );
 
+  // 5. العرض والطباعة
   await Printing.layoutPdf(onLayout: (format) => pdf.save());
 }
 

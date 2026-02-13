@@ -21,7 +21,7 @@ class _CompanySettingsPageState extends State<CompanySettingsPage> {
   final TextEditingController _taxController = TextEditingController();
   final TextEditingController _commercialController = TextEditingController();
   final TextEditingController _industrialController = TextEditingController();
-  final TextEditingController _importController = TextEditingController();
+  // final TextEditingController _importController = TextEditingController();
 
   // 2. المتغيرات التي كانت تسبب الخطأ
   XFile? _pickedFile;     // لتخزين الملف المختار (متوافق مع الويب والموبايل)
@@ -47,7 +47,7 @@ class _CompanySettingsPageState extends State<CompanySettingsPage> {
         _taxController.text = data['taxNumber'] ?? "";
         _commercialController.text = data['commercialRegister'] ?? "";
         _industrialController.text = data['industrialRegister'] ?? "";
-        _importController.text = data['importCard'] ?? "";
+        // _importController.text = data['importCard'] ?? "";
         _logoUrl = data['logoUrl'];
       });
     }
@@ -96,7 +96,7 @@ class _CompanySettingsPageState extends State<CompanySettingsPage> {
         'taxNumber': _taxController.text,
         'commercialRegister': _commercialController.text,
         'industrialRegister': _industrialController.text,
-        'importCard': _importController.text,
+        // 'importCard': _importController.text,
         'logoUrl': finalLogoUrl,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));

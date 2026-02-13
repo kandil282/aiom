@@ -115,7 +115,7 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
         indicatorColor: Colors.amber,
         labelColor: Colors.white,
         unselectedLabelColor: Colors.white70,
-        tabs:  [Tab(text: Translate.text(context, "منتجات تامة", "Finished Products")), Tab(text: Translate.text(context, "خامات", "Raw Materials"))],
+        tabs:  [Tab(text: Translate.text(context, "منتجات تامة", "Finished Products")), ],
       ),
     );
   }

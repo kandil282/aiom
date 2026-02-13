@@ -1007,7 +1007,7 @@ Widget _buildItemRow(BuildContext context, bool isDark, String name, String cat,
               // كبسولة الكمية
               Text(
                  qty,
-                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                style: const TextStyle(color: Colors.white, fontSize: 11),
               ),
             ],
           ),
@@ -1016,7 +1016,7 @@ Widget _buildItemRow(BuildContext context, bool isDark, String name, String cat,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // كبسولة الكمية
+              // كبسولة السعر
               Text(
                  "$price ${Translate.text(context, 'ج.م', 'EGP')}",
                  style: const TextStyle(

@@ -46,38 +46,74 @@ class _EmployeeControlPanelState extends State<EmployeeControlPanel> {
   }
 
   // --- 1. واجهة الحضور والانصراف ---
-  Widget _buildAttendanceView(bool isDark) {
-    return Column(
-      children: [
-        _buildSummaryHeader(Translate.text(context, "أيام الحضور هذا الشهر", "Attendance Days This Month"), "22 يوم", Icons.timer, Colors.blue),
-        Expanded(
-          child: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('users').doc(widget.docId).collection('attendance')
-                .orderBy('timestamp', descending: true).snapshots(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-              return ListView.builder(
-                itemCount: snapshot.data!.docs.length,
-                itemBuilder: (context, index) {
-                  var log = snapshot.data!.docs[index];
-                  return Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                    child: ListTile(
-                      leading: const Icon(Icons.login, color: Colors.green),
-                      title: Text(log['date'] ?? ""),
-                      subtitle: Text(Translate.text(context, "الحضور: ${log['checkIn']} | الانصراف: ${log['checkOut'] ?? '---'}", "Check-in: ${log['checkIn']} | Check-out: ${log['checkOut'] ?? '---'}")),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
+Widget _buildAttendanceView(bool isDark) {
+  // 1. تحديد أول يوم في الشهر الحالي عشان نفلتر بيه
+  DateTime now = DateTime.now();
+  DateTime startOfMonth = DateTime(now.year, now.month, 1);
 
+  return StreamBuilder<QuerySnapshot>(
+    // 2. تعديل الكويري لإضافة فلتر التاريخ
+    stream: FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.docId)
+        .collection('attendance')
+        .where('timestamp', isGreaterThanOrEqualTo: startOfMonth) // يجيب مبيعات الشهر ده بس
+        .orderBy('timestamp', descending: true)
+        .snapshots(),
+    builder: (context, snapshot) {
+      if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+
+      // 3. حساب عدد الأيام ديناميكياً من البيانات اللي رجعت
+      int attendanceCount = snapshot.data!.docs.length;
+      String attendanceText = Translate.text (context,"$attendanceCount يوم" , "$attendanceCount Days");
+
+      return Column(
+        children: [
+          // الهيدر دلوقتي بياخد القيمة الحقيقية
+          _buildSummaryHeader(
+            Translate.text(context, "أيام الحضور هذا الشهر", "Attendance This Month"),
+            attendanceText,
+            Icons.timer,
+            Colors.blue,
+          ),
+          
+          Expanded(
+            child: ListView.builder(
+              itemCount: snapshot.data!.docs.length,
+              itemBuilder: (context, index) {
+                var log = snapshot.data!.docs[index];
+                var data = log.data() as Map<String, dynamic>;
+                
+                return Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: ListTile(
+                    leading:  CircleAvatar(
+                      backgroundColor: Colors.green.withOpacity(0.1), // استبدلها بـ Colors.green.withOpacity(0.1)
+                      child: Icon(Icons.login, color: Colors.green, size: 20),
+                    ),
+                    title: Text(
+                      data['date'] ?? "",
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(
+                      Translate.text(
+                        context, 
+                        "الحضور: ${data['checkIn']} | الانصراف: ${data['checkOut'] ?? '---'}", 
+                        "In: ${data['checkIn']} | Out: ${data['checkOut'] ?? '---'}"
+                      ),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
   // --- 2. واجهة الجزاءات والمكافآت ---
   Widget _buildPenaltiesView(bool isDark) {
     return Scaffold(

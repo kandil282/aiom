@@ -46,112 +46,113 @@ class _CustomerStatementPageState extends State<CustomerStatementPage> {
 
   // 3. طباعة الفاتورة الفردية (بعرض الصفحة وتصميم فخم)
 // دالة طباعة حركة واحدة (فاتورة أو سند) بشكل احترافي
- Future<void> _printSingleTransaction(DocumentSnapshot doc) async {
+Future<void> _printSingleTransaction(DocumentSnapshot doc) async {
   final data = doc.data() as Map<String, dynamic>;
   final String type = data['type'] ?? 'invoice';
   final ttf = await _getFont();
   final pdf = pw.Document();
 
+  // تجهيز العناوين المترجمة قبل الدخول في بناء الـ PDF
+  final String title = type == 'invoice' 
+      ? Translate.text(context, "فاتورة مبيعات", 'Sales Invoice') 
+      : Translate.text(context, "سند قبض", 'Receipt');
+  
+  final String customerLabel = Translate.text(context, "العميل: $selectedCustomerName", 'Customer: $selectedCustomerName');
+  final String dateLabel = Translate.text(context, "التاريخ: ${data['date']?.toDate().toString().substring(0, 16)}", 'Date: ...');
+  final List<String> tableHeaders = [
+    Translate.text(context, "الصنف", "Item"),
+    Translate.text(context, "التصنيف / الفرعي", "Category / Sub"),
+    Translate.text(context, "الكمية", "Qty"),
+    Translate.text(context, "السعر", "Price"),
+    Translate.text(context, "الإجمالي", "Total"),
+  ];
+
   pdf.addPage(
     pw.Page(
-      pageFormat: PdfPageFormat.a4, // ده اللي بيخليها بعرض الصفحة
-      build: (pw.Context context) {
+      pageFormat: PdfPageFormat.a4,
+      build: (pw.Context pdfCtx) { // غيرنا الاسم لـ pdfCtx عشان ميتعارضش مع الـ context الأصلي
         return pw.Directionality(
           textDirection: pw.TextDirection.rtl,
           child: pw.Column(
             children: [
-              pw.Text(type == 'invoice' ? Translate.text(context as BuildContext, "فاتورة مبيعات" , 'invoice'): Translate.text(context as BuildContext, "سند قبض", 'receipt'), 
-                style: pw.TextStyle(font: ttf, fontSize: 25, fontWeight: pw.FontWeight.bold)),
+              pw.Text(title, style: pw.TextStyle(font: ttf, fontSize: 25, fontWeight: pw.FontWeight.bold)),
               pw.Divider(),
               
-              // بيانات العميل
               pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-                pw.Text(Translate.text(context as BuildContext, "العميل: $selectedCustomerName", 'customer')  , style: pw.TextStyle(font: ttf)),
-                pw.Text(Translate.text(context as BuildContext, "التاريخ: ${data['date']?.toDate().toString().substring(0,16)}", 'date'), style: pw.TextStyle(font: ttf)),
+                pw.Text(customerLabel, style: pw.TextStyle(font: ttf)),
+                pw.Text(dateLabel, style: pw.TextStyle(font: ttf)),
               ]),
               pw.SizedBox(height: 20),
 
-              // لو فاتورة نعرض الجدول بالتصنيفات
-             // --- بداية التعديل ---
-if (type == 'invoice') 
-  pw.TableHelper.fromTextArray(
-    context: context,
-    cellStyle: pw.TextStyle(font: ttf, fontSize: 10),
-    headerStyle: pw.TextStyle(font: ttf, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
-    headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey800),
-    // توزيع العرض بنسب مئوية عشان يملأ الصفحة A4
-    columnWidths: {
-      0: const pw.FlexColumnWidth(3), // الصنف
-      1: const pw.FlexColumnWidth(2.5), // التصنيف (وسعناه شوية)
-      2: const pw.FlexColumnWidth(1), // الكمية
-      3: const pw.FlexColumnWidth(1.5), // السعر (أضفنا خانة السعر عشان يملأ العرض)
-      4: const pw.FlexColumnWidth(2), // الإجمالي
-    },
-    headers: ['الصنف', 'التصنيف / الفرعي', 'الكمية', 'السعر', 'الإجمالي'],
-    data: (data['items'] as List).map((item) {
-      // معالجة البيانات الناقصة بذكاء
-      String name = item['name'] ?? item['productName'] ?? 'صنف غير مسمى';
-      String cat = (item['category'] != null && item['category'] != "") ? item['category'] : "عام";
-      String sub = (item['subCategory'] != null && item['subCategory'] != "") ? item['subCategory'] : "افتراضي";
-      
-      return [
-        name,
-        "$cat / $sub",
-        item['qty'].toString(),
-        item['price'].toString(),
-        item['total'].toString(),
-      ];
-    }).toList(),
-  )
-else
-  // تصميم فخم لسند القبض بدل الجدول الفاضي
-  pw.Container(
-    width: double.infinity,
-    padding: const pw.EdgeInsets.all(15),
-    decoration: pw.BoxDecoration(
-      border: pw.Border.all(color: PdfColors.blueGrey, width: 2),
-      borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
-    ),
-    child: pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-          children: [
-            pw.Text(Translate.text(context as BuildContext, "وصلنا من السيد: $selectedCustomerName", 'customer'), style: pw.TextStyle(font: ttf, fontSize: 14)),
-            pw.Text(Translate.text(context as BuildContext, "مبلغ وقدره: ${data['amount']} ج.م", 'amount'), style: pw.TextStyle(font: ttf, fontSize: 14, fontWeight: pw.FontWeight.bold)),
-          ],
-        ),
-        pw.SizedBox(height: 10),
-        pw.Divider(color: PdfColors.blueGrey),
-        pw.SizedBox(height: 10),
-        pw.Text(Translate.text(context as BuildContext, "وذلك عن: ${data['details'] ?? 'سند قبض نقدي لسيادتكم'}", 'details'), 
-          style: pw.TextStyle(font: ttf, fontSize: 13, color: PdfColors.grey700)),
-      ],
-    ),
-  ),
+              if (type == 'invoice') 
+                pw.TableHelper.fromTextArray(
+                  cellStyle: pw.TextStyle(font: ttf, fontSize: 10),
+                  headerStyle: pw.TextStyle(font: ttf, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+                  headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey800),
+                  columnWidths: {
+                    0: const pw.FlexColumnWidth(3),
+                    1: const pw.FlexColumnWidth(2.5),
+                    2: const pw.FlexColumnWidth(1),
+                    3: const pw.FlexColumnWidth(1.5),
+                    4: const pw.FlexColumnWidth(2),
+                  },
+                  headers: tableHeaders,
+                  data: (data['items'] as List).map((item) {
+                    return [
+                      item['name'] ?? item['productName'] ?? '---',
+                      "${item['category'] ?? 'عام'} / ${item['subCategory'] ?? 'افتراضي'}",
+                      item['qty'].toString(),
+                      item['price'].toString(),
+                      item['total'].toString(),
+                    ];
+                  }).toList(),
+                )
+              else
+                pw.Container(
+                  width: double.infinity,
+                  padding: const pw.EdgeInsets.all(15),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: PdfColors.blueGrey, width: 2),
+                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text(Translate.text(context, "وصلنا من السيد: $selectedCustomerName", 'Received from: $selectedCustomerName'), style: pw.TextStyle(font: ttf, fontSize: 14)),
+                          pw.Text(Translate.text(context, "مبلغ وقدره: ${data['amount']} ج.م", 'Amount: ${data['amount']} EGP'), style: pw.TextStyle(font: ttf, fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                        ],
+                      ),
+                      pw.SizedBox(height: 10),
+                      pw.Divider(color: PdfColors.blueGrey),
+                      pw.SizedBox(height: 10),
+                      pw.Text(Translate.text(context, "وذلك عن: ${data['details'] ?? 'سند قبض نقدي'}", 'For: ${data['details'] ?? 'Payment'}'), 
+                        style: pw.TextStyle(font: ttf, fontSize: 13, color: PdfColors.grey700)),
+                    ],
+                  ),
+                ),
 
-pw.SizedBox(height: 30), // مسافة قبل الإجمالي
-
-pw.Align(
-  alignment: pw.Alignment.centerLeft, 
-  child: pw.Container(
-    padding: const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-    decoration: const pw.BoxDecoration(
-      color: PdfColors.grey100,
-      border: pw.Border(right: pw.BorderSide(color: PdfColors.black, width: 5))
-    ),
-    child: pw.Row(
-      mainAxisSize: pw.MainAxisSize.min,
-      children: [
-        pw.Text(Translate.text(context as BuildContext, "الإجمالي المطلوب: ", 'total'), style: pw.TextStyle(font: ttf, fontSize: 14)),
-        pw.Text("${data['amount']} ج.م", 
-          style: pw.TextStyle(font: ttf, fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
-      ],
-    ),
-  ),
-),
-// --- نهاية التعديل ---
+              pw.SizedBox(height: 30),
+              pw.Align(
+                alignment: pw.Alignment.centerLeft, 
+                child: pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: const pw.BoxDecoration(
+                    color: PdfColors.grey100,
+                    border: pw.Border(right: pw.BorderSide(color: PdfColors.black, width: 5))
+                  ),
+                  child: pw.Row(
+                    mainAxisSize: pw.MainAxisSize.min,
+                    children: [
+                      pw.Text(Translate.text(context, "الإجمالي: ", 'Total: '), style: pw.TextStyle(font: ttf, fontSize: 14)),
+                      pw.Text("${data['amount']} ج.م", 
+                        style: pw.TextStyle(font: ttf, fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         );
@@ -161,10 +162,9 @@ pw.Align(
 
   await Printing.layoutPdf(onLayout: (format) async => pdf.save());
 }
-  
   // 4. طباعة كشف الحساب المجمع (حل المشكلة السابقة)
 // 4. طباعة كشف الحساب المجمع (تم إصلاح خطأ تعدد الصفحات + فلترة الملغي)
- Future<void> _printStatementDirectly() async {
+Future<void> _printStatementDirectly() async {
   if (selectedCustomerId == null) return;
 
   showDialog(context: context, barrierDismissible: false, builder: (c) => const Center(child: CircularProgressIndicator()));
@@ -173,11 +173,11 @@ pw.Align(
     var snap = await FirebaseFirestore.instance
         .collection('customers').doc(selectedCustomerId)
         .collection('transactions')
-        .orderBy('date') // الترتيب الزمني ضروري جداً هنا
+        .orderBy('date')
         .get();
 
     List<List<dynamic>> tableData = [];
-    double runningBalance = 0.0; // الرصيد التراكمي يبدأ من الصفر
+    double runningBalance = 0.0;
 
     for (var doc in snap.docs) {
       var d = doc.data();
@@ -186,55 +186,53 @@ pw.Align(
       double amount = double.tryParse(d['amount'].toString()) ?? 0;
       bool isInvoice = d['type'] == 'invoice';
 
-      // تحديث الرصيد التراكمي: الفاتورة تزيد (+) والدفع ينقص (-)
-      if (isInvoice) {
-        runningBalance += amount;
-      } else {
-        runningBalance -= amount;
-      }
+      if (isInvoice) runningBalance += amount;
+      else runningBalance -= amount;
 
       tableData.add([
-        (d['date'] as Timestamp).toDate().toString().substring(0, 10), // التاريخ
-        isInvoice ? Translate.text(context as BuildContext, "فاتورة", 'invoice') : Translate.text(context as BuildContext, "سند قبض", 'receipt'), // النوع
-        d['details'] ?? '-', // البيان
-        isInvoice ? amount.toStringAsFixed(1) : "", // مدين (عليه)
-        !isInvoice ? amount.toStringAsFixed(1) : "", // دائن (له)
-        runningBalance.toStringAsFixed(1), // الرصيد التراكمي بعد هذه الحركة
+        (d['date'] as Timestamp).toDate().toString().substring(0, 10),
+        isInvoice ? Translate.text(context, "فاتورة", "Invoice") : Translate.text(context, "سند قبض", "Receipt"),
+        d['details'] ?? '-',
+        isInvoice ? amount.toStringAsFixed(1) : "",
+        !isInvoice ? amount.toStringAsFixed(1) : "",
+        runningBalance.toStringAsFixed(1),
       ]);
     }
 
     final ttf = await _getFont();
     final pdf = pw.Document();
 
+    // تجهيز العناوين قبل الـ PDF
+    final String reportHeader = Translate.text(context, "كشف حساب تفصيلي: $selectedCustomerName", "Statement: $selectedCustomerName");
+    final List<String> headers = [
+      Translate.text(context, "التاريخ", "Date"),
+      Translate.text(context, "النوع", "Type"),
+      Translate.text(context, "البيان", "Details"),
+      Translate.text(context, "مدين (+)", "Debit"),
+      Translate.text(context, "دائن (-)", "Credit"),
+      Translate.text(context, "الرصيد", "Balance")
+    ];
+
     pdf.addPage(pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
       theme: pw.ThemeData.withFont(base: ttf),
       textDirection: pw.TextDirection.rtl,
-      build: (pw.Context context) => [
-        pw.Header(level: 0, child: pw.Text(Translate.text(context as BuildContext, "كشف حساب تفصيلي: $selectedCustomerName", 'statement'), style: pw.TextStyle(font: ttf, fontSize: 18))),
+      build: (pw.Context pdfCtx) => [
+        pw.Header(level: 0, child: pw.Text(reportHeader, style: pw.TextStyle(font: ttf, fontSize: 18))),
         
         pw.TableHelper.fromTextArray(
-          context: context,
           headerStyle: pw.TextStyle(font: ttf, color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 10),
           headerDecoration: const pw.BoxDecoration(color: PdfColors.blueGrey800),
           cellStyle: pw.TextStyle(font: ttf, fontSize: 9),
-          // العناوين الجديدة للجدول
-          headers: [
-            Translate.text(context as BuildContext, "التاريخ", 'date'),
-            Translate.text(context as BuildContext, "النوع", 'type'),
-            Translate.text(context as BuildContext, "البيان", 'details'),
-            Translate.text(context as BuildContext, "مدين (+)", 'debit'),
-            Translate.text(context as BuildContext, "دائن (-)", 'credit'),
-            Translate.text(context as BuildContext, "الرصيد", 'balance')
-          ],
+          headers: headers,
           data: tableData,
           columnWidths: {
-            0: const pw.FlexColumnWidth(2), // التاريخ
-            1: const pw.FlexColumnWidth(1.5), // النوع
-            2: const pw.FlexColumnWidth(3), // البيان
-            3: const pw.FlexColumnWidth(1.5), // مدين
-            4: const pw.FlexColumnWidth(1.5), // دائن
-            5: const pw.FlexColumnWidth(2), // الرصيد التراكمي
+            0: const pw.FlexColumnWidth(2),
+            1: const pw.FlexColumnWidth(1.5),
+            2: const pw.FlexColumnWidth(3),
+            3: const pw.FlexColumnWidth(1.5),
+            4: const pw.FlexColumnWidth(1.5),
+            5: const pw.FlexColumnWidth(2),
           },
         ),
         
@@ -242,7 +240,7 @@ pw.Align(
         pw.Container(
           alignment: pw.Alignment.centerLeft,
           child: pw.Text(
-            Translate.text(context as BuildContext, "صافي المديونية النهائية: ${runningBalance.toStringAsFixed(2)} ج.م", 'final_balance'),
+            Translate.text(context, "صافي المديونية النهائية: ${runningBalance.toStringAsFixed(2)} ج.م", "Final Balance: ..."),
             style: pw.TextStyle(font: ttf, fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.red900)
           ),
         )
@@ -257,7 +255,6 @@ pw.Align(
     print("PDF Error: $e");
   }
 }
-
 
   // 5. عرض التفاصيل في كارت منبثق (BottomSheet)
   void _showTransactionDetails(Map<String, dynamic> data,DocumentSnapshot doc) {

@@ -214,7 +214,7 @@ children: [
 
                   // --- قسم المخازن ---
                   _buildSection(Translate.text(context, "المخازن والإنتاج", "Storage & Production"), [
-                    _item(Translate.text(context, "مخزن المنتجات", "Products Storage"), Icons.warehouse_rounded, Colors.brown, const StorageDashboard(), "store_products", Theme.of(context).brightness == Brightness.dark),
+                 //   _item(Translate.text(context, "مخزن المنتجات", "Products Storage"), Icons.warehouse_rounded, Colors.brown, const StorageDashboard(), "store_products", Theme.of(context).brightness == Brightness.dark),
                     _item(Translate.text(context, " المنتجات", "Products"), Icons.production_quantity_limits, Colors.brown, const AddProductPage(), "store_products", Theme.of(context).brightness == Brightness.dark),
                     _item(Translate.text(context, "أوامر الإنتاج", "Production Orders"), Icons.precision_manufacturing_rounded, Colors.blueGrey, const ProductionDashboard(), "production_orders", Theme.of(context).brightness == Brightness.dark),
                     _item(Translate.text(context, "صرف خامات", "Warehouse Dispatch"), Icons.outbox_rounded, Colors.blueGrey, const WarehouseDispatchPage(), "warehouse_dispatch", Theme.of(context).brightness == Brightness.dark),
