@@ -60,12 +60,36 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0 # تم تحديث الإصدار ليتوافق مع SDK الخاص بك
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.0
+  
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/icon.png" # مسار صورتك
+  windows:
+    generate: true
+    image_path: "assets/images/icon.png"
+    icon_size: 256 # مقاس أيقونة الويندوز
+  
 
 
+flutter_native_splash:
+  color: "#ffffff"             # لون الخلفية أبيض عشان اللوجو يبان
+  image: "assets/images/aiom.png" # مسار الصورة اللي لسه حافظينها
+  branding: "assets/images/aiom.png" # (اختياري) لو عايز الصورة تظهر تحت كمان
+  color_dark: "#1e1b4b"        # (اختياري) لون الخلفية في الوضع الليلي
+  image_dark: "assets/images/aiom.png" 
+
+  android_12:
+    image: "assets/images/aiom.png"
+    color: "#ffffff"
+  
+  web: false
+   # المكتبة السحرية للأيقونات
 flutter:
   uses-material-design: true
-  assets:
-      - assets/ceo_avatar.png
+
   # assets:
     # - assets/translations/
     # - assets/fonts/Cairo-Regular.ttf
